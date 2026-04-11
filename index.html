@@ -19,15 +19,12 @@
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
         ::selection{background:var(--gold);color:#000}
-
-        /* SIDEBAR */
         .layout{display:flex;min-height:100vh}
         .sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;z-index:50}
         .sidebar-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;padding:0 4px}
         .sidebar-logo .icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#dc2626,#991b1b);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;color:#fff;box-shadow:0 4px 15px rgba(220,38,38,.3)}
         .sidebar-logo h1{font-size:1rem;font-weight:700;color:var(--text);line-height:1.2}
         .sidebar-logo h1 span{color:var(--gold)}
-
         .sidebar-section{margin-bottom:24px}
         .sidebar-section-title{font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);padding:0 12px;margin-bottom:8px}
         .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all .15s;font-size:.85rem;color:var(--text2);position:relative}
@@ -35,11 +32,8 @@
         .sidebar-item.active{background:var(--gold-soft);color:var(--gold);font-weight:600}
         .sidebar-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--gold);border-radius:0 3px 3px 0}
         .sidebar-item .badge{margin-left:auto;background:var(--surface3);padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600;min-width:24px;text-align:center}
-        .sidebar-item.active .badge{background:rgba(245,158,11,.15);color:var(--gold)}
-
+        .sidebar-item.active .badge{background:rgba(220,38,38,.15);color:var(--gold)}
         .sidebar-divider{height:1px;background:var(--border);margin:16px 8px}
-
-        /* Sync status */
         .sync-status{margin-top:auto;padding:12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)}
         .sync-status .sync-title{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px}
         .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
@@ -50,12 +44,8 @@
         .sync-sub{font-size:.7rem;color:var(--text3);margin-top:4px}
         .btn-sync{width:100%;margin-top:10px;padding:8px;background:var(--surface3);border:1px solid var(--border);color:var(--text2);border-radius:8px;font-size:.75rem;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
         .btn-sync:hover{background:rgba(220,38,38,.08);color:#dc2626;border-color:rgba(220,38,38,.2)}
-
-        /* MAIN */
         .main{flex:1;margin-left:260px;padding:0}
-
-        /* TOP BAR */
-        .topbar{padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(9,9,11,.85);backdrop-filter:blur(12px);z-index:40}
+        .topbar{padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,10,.9);backdrop-filter:blur(12px);z-index:40}
         .topbar-left h2{font-size:1.4rem;font-weight:700}
         .topbar-left p{font-size:.8rem;color:var(--text3);margin-top:2px}
         .topbar-right{display:flex;gap:10px}
@@ -64,8 +54,6 @@
         .btn-ghost:hover{background:var(--surface2);color:var(--text)}
         .btn-primary{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;border:none;font-weight:600}
         .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(220,38,38,.35)}
-
-        /* STATS ROW */
         .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 30px}
         .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
         .stat-card .stat-label{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:8px}
@@ -75,8 +63,6 @@
         .stat-blue .stat-value{color:var(--blue)}
         .stat-green .stat-value{color:var(--green)}
         .stat-purple .stat-value{color:var(--purple)}
-
-        /* FILTERS */
         .filters-bar{padding:16px 30px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
         .filter-chip{padding:6px 14px;border-radius:20px;font-size:.78rem;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Inter',sans-serif;white-space:nowrap}
         .filter-chip:hover{border-color:var(--gold-border);color:var(--text)}
@@ -85,21 +71,17 @@
         .search-input{margin-left:auto;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:.8rem;width:220px;font-family:'Inter',sans-serif}
         .search-input:focus{outline:none;border-color:var(--gold-border)}
         .search-input::placeholder{color:var(--text3)}
-
-        /* TABLE */
         .table-wrap{padding:0 30px 30px}
         table{width:100%;border-collapse:separate;border-spacing:0;margin-top:12px}
         thead th{text-align:left;padding:10px 14px;font-size:.68rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;top:62px;background:var(--bg);z-index:5;cursor:pointer}
         thead th:hover{color:var(--text2)}
-        tbody tr{transition:background .15s;border-radius:8px}
-        tbody tr:hover{background:rgba(245,158,11,.03)}
+        tbody tr{transition:background .15s}
+        tbody tr:hover{background:rgba(220,38,38,.03)}
         tbody td{padding:14px 14px;font-size:.83rem;border-bottom:1px solid rgba(255,255,255,.04);white-space:nowrap}
-
         .client-cell{display:flex;align-items:center;gap:10px}
         .avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.2)}
         .client-name{font-weight:500;color:var(--text)}
         .client-ig{font-size:.72rem;color:var(--text3)}
-
         .tag{display:inline-block;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:600;white-space:nowrap;letter-spacing:.5px}
         .tag-jul{background:rgba(239,68,68,.12);color:#f87171}
         .tag-sch{background:rgba(168,85,247,.12);color:#c084fc}
@@ -114,7 +96,6 @@
         .tag-aya{background:rgba(251,146,60,.12);color:#fdba74}
         .tag-tame{background:rgba(20,184,166,.12);color:#2dd4bf}
         .tag-other{background:var(--surface3);color:var(--text2)}
-
         .cat-tag{font-size:.72rem;padding:3px 8px;border-radius:4px;font-weight:500;background:var(--surface3);color:var(--text2)}
         .places-num{font-weight:700;color:var(--text)}
         .source-tag{font-size:.68rem;padding:2px 7px;border-radius:4px;font-weight:600}
@@ -125,22 +106,17 @@
         .date-main{font-weight:600;color:var(--text)}
         .date-sub{font-size:.7rem;color:var(--text3)}
         .lieu-text{font-size:.78rem;color:var(--text2)}
-
         .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:500;padding:4px 10px;border-radius:20px}
         .st-new{background:rgba(220,38,38,.1);color:#f87171}
         .st-pending{background:rgba(59,130,246,.1);color:var(--blue)}
         .st-done{background:rgba(34,197,94,.1);color:var(--green)}
         .st-cancelled{background:rgba(239,68,68,.1);color:var(--red)}
         .st-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
-
         .act-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;margin-right:3px}
         .act-btn:hover{background:rgba(34,197,94,.08);color:#22c55e;border-color:rgba(34,197,94,.2)}
         .act-btn.del:hover{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.2)}
-
         .empty{text-align:center;padding:60px 20px;color:var(--text3)}
         .empty .em-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}
-
-        /* MODAL */
         .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
         .modal-bg.open{display:flex}
         .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:520px;max-width:92vw;max-height:90vh;overflow-y:auto}
@@ -152,176 +128,87 @@
         .m-field input:focus,.m-field select:focus{outline:none;border-color:var(--gold-border)}
         .m-field select option{background:var(--surface2)}
         .m-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-
-        /* NOTIFICATION TOAST */
         .toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--gold-border);border-radius:10px;padding:14px 20px;z-index:300;display:flex;align-items:center;gap:10px;transform:translateY(100px);opacity:0;transition:all .4s cubic-bezier(.4,0,.2,1);box-shadow:0 10px 40px rgba(0,0,0,.3)}
         .toast.show{transform:translateY(0);opacity:1}
         .toast-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0}
         .toast-text{font-size:.83rem;color:var(--text)}
         .toast-sub{font-size:.72rem;color:var(--text3)}
-
-        /* RESPONSIVE */
-        @media(max-width:900px){
-            .sidebar{display:none}
-            .main{margin-left:0}
-            .stats-row{grid-template-columns:repeat(2,1fr);padding:16px}
-            .topbar,.filters-bar,.table-wrap{padding-left:16px;padding-right:16px}
-            .search-input{width:100%;margin-left:0;margin-top:8px}
-        }
-        @media(max-width:500px){
-            .stats-row{grid-template-columns:1fr}
-        }
+        @media(max-width:900px){.sidebar{display:none}.main{margin-left:0}.stats-row{grid-template-columns:repeat(2,1fr);padding:16px}.topbar,.filters-bar,.table-wrap{padding-left:16px;padding-right:16px}.search-input{width:100%;margin-left:0;margin-top:8px}}
+        @media(max-width:500px){.stats-row{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
 <div class="layout">
-    <!-- SIDEBAR -->
     <aside class="sidebar">
-        <div class="sidebar-logo">
-            <div class="icon">LP</div>
-            <h1>Les<span>Places</span><br>2Paris</h1>
-        </div>
+        <div class="sidebar-logo"><div class="icon">LP</div><h1>Les<span>Places</span><br>2Paris</h1></div>
         <div class="sidebar-section">
             <div class="sidebar-section-title">Menu</div>
-            <div class="sidebar-item active" onclick="filterStatus('all',this)">
-                <span>&#9776;</span> Toutes les demandes <span class="badge" id="badgeAll">0</span>
-            </div>
-            <div class="sidebar-item" onclick="filterStatus('new',this)">
-                <span>&#9733;</span> Nouvelles <span class="badge" id="badgeNew">0</span>
-            </div>
-            <div class="sidebar-item" onclick="filterStatus('pending',this)">
-                <span>&#9203;</span> En cours <span class="badge" id="badgePending">0</span>
-            </div>
-            <div class="sidebar-item" onclick="filterStatus('done',this)">
-                <span>&#10003;</span> Traitees <span class="badge" id="badgeDone">0</span>
-            </div>
-            <div class="sidebar-item" onclick="filterStatus('cancelled',this)">
-                <span>&#10007;</span> Annulees <span class="badge" id="badgeCancelled">0</span>
-            </div>
+            <div class="sidebar-item active" onclick="filterStatus('all',this)"><span>&#9776;</span> Toutes les demandes <span class="badge" id="badgeAll">0</span></div>
+            <div class="sidebar-item" onclick="filterStatus('new',this)"><span>&#9733;</span> Nouvelles <span class="badge" id="badgeNew">0</span></div>
+            <div class="sidebar-item" onclick="filterStatus('pending',this)"><span>&#9203;</span> En cours <span class="badge" id="badgePending">0</span></div>
+            <div class="sidebar-item" onclick="filterStatus('done',this)"><span>&#10003;</span> Traitees <span class="badge" id="badgeDone">0</span></div>
+            <div class="sidebar-item" onclick="filterStatus('cancelled',this)"><span>&#10007;</span> Annulees <span class="badge" id="badgeCancelled">0</span></div>
         </div>
         <div class="sidebar-divider"></div>
         <div class="sync-status">
             <div class="sync-title">Tally Sync</div>
             <div class="sync-info"><span class="sync-dot live" id="syncDot"></span> <span id="syncLabel">Auto-sync actif</span></div>
             <div class="sync-sub" id="syncSub">Derniere sync: --</div>
-            <button class="btn-sync" onclick="syncTelegram()" id="syncBtn">Sync Google Sheet</button>
+            <button class="btn-sync" onclick="doSync()" id="syncBtn">Sync maintenant</button>
         </div>
     </aside>
-
-    <!-- MAIN -->
     <main class="main">
         <div class="topbar">
-            <div class="topbar-left">
-                <h2>Demandes</h2>
-                <p id="topbarSub">Gerez toutes vos demandes de places</p>
-            </div>
-            <div class="topbar-right">
-                <button class="btn btn-primary" onclick="openModal()">+ Nouvelle</button>
-            </div>
+            <div class="topbar-left"><h2>Demandes</h2><p id="topbarSub">Gerez toutes vos demandes de places</p></div>
+            <div class="topbar-right"><button class="btn btn-primary" onclick="openModal()">+ Nouvelle</button></div>
         </div>
-
-        <!-- STATS -->
         <div class="stats-row">
             <div class="stat-card stat-gold"><div class="stat-label">Total demandes</div><div class="stat-value" id="sTotal">0</div><div class="stat-sub">toutes sources</div></div>
             <div class="stat-card stat-blue"><div class="stat-label">En attente</div><div class="stat-value" id="sWaiting">0</div><div class="stat-sub">a traiter</div></div>
             <div class="stat-card stat-green"><div class="stat-label">Places demandees</div><div class="stat-value" id="sPlaces">0</div><div class="stat-sub">au total</div></div>
             <div class="stat-card stat-purple"><div class="stat-label">Artistes</div><div class="stat-value" id="sArtists">0</div><div class="stat-sub">differents</div></div>
         </div>
-
-        <!-- ARTIST FILTERS -->
         <div class="filters-bar">
             <button class="filter-chip active" onclick="filterArtist('all',this)">Tous</button>
             <div id="artistChips" style="display:contents"></div>
-            <input type="text" class="search-input" placeholder="Rechercher..." oninput="searchClient(this.value)" id="searchBox">
+            <input type="text" class="search-input" placeholder="Rechercher..." oninput="searchClient(this.value)">
         </div>
-
-        <!-- TABLE -->
         <div class="table-wrap">
             <table>
-                <thead><tr>
-                    <th onclick="doSort('client')">Client</th>
-                    <th onclick="doSort('artist')">Artiste</th>
-                    <th onclick="doSort('dateEvent')">Evenement</th>
-                    <th>Lieu</th>
-                    <th>Places</th>
-                    <th>Categorie</th>
-                    <th>Source</th>
-                    <th onclick="doSort('dateMsg')">Recu le</th>
-                    <th>Statut</th>
-                    <th>Actions</th>
-                </tr></thead>
+                <thead><tr><th onclick="doSort('client')">Client</th><th onclick="doSort('artist')">Artiste</th><th>Evenement</th><th>Lieu</th><th>Places</th><th>Categorie</th><th>Source</th><th onclick="doSort('dateMsg')">Recu le</th><th>Statut</th><th>Actions</th></tr></thead>
                 <tbody id="tbody"></tbody>
             </table>
             <div class="empty" id="empty"><div class="em-icon">&#128229;</div><p>Aucune demande</p></div>
         </div>
     </main>
 </div>
-
-<!-- MODAL -->
 <div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
     <div class="modal">
         <h2 id="mTitle">Nouvelle demande</h2>
         <div class="m-row"><div class="m-field"><label>Client</label><input id="fClient" placeholder="Nom Prenom (@instagram)"></div><div class="m-field"><label>Source</label><select id="fSource"><option value="instagram">Instagram</option><option value="telegram">Telegram</option><option value="tiktok">TikTok</option><option value="autre">Autre</option></select></div></div>
         <div class="m-row"><div class="m-field"><label>Artiste</label><input id="fArtist" placeholder="JUL, Celine Dion..."></div><div class="m-field"><label>Date evenement</label><input id="fDateEvent" placeholder="16 Mai 2026"></div></div>
-        <div class="m-row"><div class="m-field"><label>Lieu</label><input id="fLieu" placeholder="Stade de France, Accor Arena..."></div><div class="m-field"><label>Places</label><input id="fPlaces" type="text" placeholder="2"></div></div>
+        <div class="m-row"><div class="m-field"><label>Lieu</label><input id="fLieu" placeholder="Stade de France..."></div><div class="m-field"><label>Places</label><input id="fPlaces" type="text" placeholder="2"></div></div>
         <div class="m-row"><div class="m-field"><label>Categorie</label><input id="fCat" placeholder="FOSSE, CAT 1, VIP..."></div><div class="m-field"><label>Statut</label><select id="fStatus"><option value="new">Nouvelle</option><option value="pending">En cours</option><option value="done">Traitee</option><option value="cancelled">Annulee</option></select></div></div>
         <div class="m-row"><div class="m-field"><label>Notes</label><input id="fNotes" placeholder="Details..."></div></div>
         <div class="m-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveDemand()">Enregistrer</button></div>
     </div>
 </div>
-
-<!-- TOAST -->
-<div class="toast" id="toast"><div class="toast-dot"></div><div><div class="toast-text" id="toastText">Nouvelle demande</div><div class="toast-sub" id="toastSub"></div></div></div>
-
+<div class="toast" id="toast"><div class="toast-dot"></div><div><div class="toast-text" id="toastText"></div><div class="toast-sub" id="toastSub"></div></div></div>
 <script>
-// ===== DATA =====
-const INITIAL=[
-{client:"June Drai (@Juneida1207)",artist:"TAME IMPALA",dateEvent:"2026-05-03",dateDisp:"3 Mai 2026",places:"2",cat:"CAT 1",source:"instagram",dateMsg:"2025-04-06",status:"new",notes:"Tame Impala 3 Mai Accor Arena cat 1",lieu:"Accor Arena"},
-{client:"Le Mentec Louis (@louislemtc)",artist:"JUL",dateEvent:"2026-05-15",dateDisp:"15 Mai 2026",places:"1",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-07",status:"new",notes:"Jul 15 mai SDF en fosse",lieu:"Stade de France"},
-{client:"Moussavi Albane (@albane.mss)",artist:"JUL",dateEvent:"2026-05-16",dateDisp:"16 Mai 2026",places:"2",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-01",status:"new",notes:"SDF Jul fosse (ou pas)",lieu:"Stade de France"},
-{client:"Eve Elbaz (@eveelbazz)",artist:"JUL",dateEvent:"2026-05-16",dateDisp:"16 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-03",status:"new",notes:"Jul SDF 16 mai 2026",lieu:"Stade de France"},
-{client:"Karim (@karimflb)",artist:"JUL",dateEvent:"2026-05-15",dateDisp:"15/16 Mai 2026",places:"4+",cat:"NC",source:"instagram",dateMsg:"2025-04-02",status:"new",notes:"Jul",lieu:"Stade de France"},
-{client:"Sanchez Melanie (@melaniecataleya)",artist:"JUL",dateEvent:"2026-05-15",dateDisp:"15/16 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-02",status:"new",notes:"Jul",lieu:"Stade de France"},
-{client:"Ghe Aida (@aidaghe)",artist:"JUL",dateEvent:"2026-05-15",dateDisp:"15/16 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-05",status:"new",notes:"Concert JUL",lieu:"Stade de France"},
-{client:"Eve Elbaz (@eveelbazz)",artist:"AYA NAKAMURA",dateEvent:"2026-05-30",dateDisp:"30/31 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-03",status:"new",notes:"Aya SDF 30/31 mai",lieu:"Stade de France"},
-{client:"Rouilly Victor (@Victorrly)",artist:"DAVID GUETTA",dateEvent:"2026-06-12",dateDisp:"12 Juin 2026",places:"2",cat:"FOSSE",source:"tiktok",dateMsg:"2025-04-04",status:"new",notes:"David Guetta 12 juin fosse",lieu:"Stade de France"},
-{client:"Dardoullier Noreen (@noreen.ddl)",artist:"BRUNO MARS",dateEvent:"2026-06-18",dateDisp:"18/20/21 Juin 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-04",status:"new",notes:"Bruno Mars toute date toute cat",lieu:"Stade de France"},
-{client:"Laissar Chamoel (@Smail78)",artist:"BAD BUNNY",dateEvent:"2026-07-04",dateDisp:"4/5 Juil 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-06",status:"new",notes:"Bad Bunny juillet sam ou dim",lieu:"La Defense Arena"},
-{client:"SALLAT Halima (@Haleema.st25)",artist:"BAD BUNNY",dateEvent:"2026-07-04",dateDisp:"4/5 Juil 2026",places:"1",cat:"NC",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Bad Bunny",lieu:"La Defense Arena"},
-{client:"Karim Assaf (@karimflb)",artist:"BAD BUNNY",dateEvent:"2026-07-04",dateDisp:"4/5 Juil 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Bad Bunny",lieu:"La Defense Arena"},
-{client:"Scotti Emilie (@Emiliescotti92)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Celine Dion Paris 2026",lieu:"La Defense Arena"},
-{client:"Wojciechowski Kimberly (@Wojciekokiki)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Septembre 2026",places:"4",cat:"PAS FOSSE",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Celine Dion sept pas la fosse",lieu:"La Defense Arena"},
-{client:"Henocq Simon (@Nomis.18)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"4",cat:"NC",source:"instagram",dateMsg:"2025-04-09",status:"new",notes:"PSG + Roland Garros + Celine Dion",lieu:"La Defense Arena"},
-{client:"BRUN Isaure (@isaurebrn)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-09",status:"new",notes:"Celine Dion",lieu:"La Defense Arena"},
-{client:"Henocq Simon (@Nomis.18)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"4+",cat:"CAT 4",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Celine Dion cat 4",lieu:"La Defense Arena"},
-{client:"Choulet Ambre (@ambre272)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept/Oct 2026",places:"2",cat:"DIAMANT / CAT 1",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Celine Dion parterre diamant ou cat 1",lieu:"La Defense Arena"},
-{client:"Vidal Clothilde (@clothildevdl)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"GRADIN CAT 4",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Celine Dion gradin cat 4",lieu:"La Defense Arena"},
-{client:"Toulouse Paul (@paultls)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"PARTERRE CAT 1",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion parterre assis cat 1",lieu:"La Defense Arena"},
-{client:"Louis dit Champain Jules (@julesldcp)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion",lieu:"La Defense Arena"},
-{client:"Vidal Clothilde (@clothildevdl)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Toute date",places:"2",cat:"TOUTE DISPO",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion toute date toute cat",lieu:"La Defense Arena"},
-{client:"Stanislas Sirven Vienot (@stanssv)",artist:"CIRCOLOCO",dateEvent:"2026-12-31",dateDisp:"Date NC",places:"1",cat:"NC",source:"instagram",dateMsg:"2025-04-05",status:"new",notes:"Circoloco",lieu:"NC"},
-{client:"Soriano Aure (@aure.srn)",artist:"BTS",dateEvent:"2026-12-31",dateDisp:"Date NC",places:"1",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-07",status:"new",notes:"BTS en fosse SDF",lieu:"Stade de France"}
-];
-
-let demands=JSON.parse(localStorage.getItem('lp2p_v2')||'[]');
+let demands=JSON.parse(localStorage.getItem('lp2p_v3')||'[]');
 let cFilter='all',cStatus='all',cSearch='',editIdx=-1;
-
-// ===== ARTIST COLORS =====
 const AC={JUL:'jul',SCH:'sch',NINHO:'ninho',PNL:'pnl',BOOBA:'booba',DAMSO:'damso','CELINE DION':'celine','BAD BUNNY':'badbunny','DAVID GUETTA':'guetta','BRUNO MARS':'bruno','AYA NAKAMURA':'aya','TAME IMPALA':'tame'};
-const AVATAR_COLORS={JUL:'#ef4444',SCH:'#a855f7',NINHO:'#22c55e',PNL:'#3b82f6','CELINE DION':'#ec4899','BAD BUNNY':'#06b6d4','DAVID GUETTA':'#8b5cf6','BRUNO MARS':'#10b981','AYA NAKAMURA':'#f97316','TAME IMPALA':'#14b8a6'};
+const AVC={JUL:'#ef4444',SCH:'#a855f7',NINHO:'#22c55e',PNL:'#3b82f6','CELINE DION':'#ec4899','BAD BUNNY':'#06b6d4','DAVID GUETTA':'#8b5cf6','BRUNO MARS':'#10b981','AYA NAKAMURA':'#f97316','TAME IMPALA':'#14b8a6'};
 function tagClass(a){return AC[a.toUpperCase()]?'tag-'+AC[a.toUpperCase()]:'tag-other'}
-function avatarBg(a){return AVATAR_COLORS[a.toUpperCase()]||'#71717a'}
+function avatarBg(a){return AVC[a.toUpperCase()]||'#71717a'}
 function initials(n){const p=n.replace(/@\S+/g,'').replace(/[()]/g,'').trim().split(' ');return p.length>1?(p[0][0]+p[1][0]).toUpperCase():p[0].substring(0,2).toUpperCase()}
-
-// ===== RENDER =====
 function render(){
     const f=demands.filter(d=>{
         const ma=cFilter==='all'||d.artist.toUpperCase()===cFilter.toUpperCase();
         const ms=cStatus==='all'||d.status===cStatus;
-        const mc=cSearch===''||d.client.toLowerCase().includes(cSearch)||d.artist.toLowerCase().includes(cSearch)||((d.notes||'').toLowerCase().includes(cSearch));
+        const mc=cSearch===''||d.client.toLowerCase().includes(cSearch)||d.artist.toLowerCase().includes(cSearch);
         return ma&&ms&&mc;
     });
-    // Sort by event date
     f.sort((a,b)=>(a.dateEvent||'2099').localeCompare(b.dateEvent||'2099'));
     const tb=document.getElementById('tbody'),em=document.getElementById('empty');
     if(!f.length){tb.innerHTML='';em.style.display='block';return}
@@ -330,30 +217,14 @@ function render(){
     const SC={new:'st-new',pending:'st-pending',done:'st-done',cancelled:'st-cancelled'};
     const srcC={instagram:'src-ig',telegram:'src-tg',tiktok:'src-tk'};
     const srcL={instagram:'IG',telegram:'TG',tiktok:'TK'};
-    tb.innerHTML=f.map(d=>{
-        const ri=demands.indexOf(d);
-        return`<tr ondblclick="editDemand(${ri})">
-<td><div class="client-cell"><div class="avatar" style="background:${avatarBg(d.artist)}">${initials(d.client)}</div><div><div class="client-name">${d.client.split('(')[0].trim()}</div><div class="client-ig">${d.client.match(/\(@?\S+\)/)?d.client.match(/\(@?\S+\)/)[0]:''}</div></div></div></td>
-<td><span class="tag ${tagClass(d.artist)}">${d.artist}</span></td>
-<td><div class="date-main">${d.dateDisp||d.dateEvent||'NC'}</div></td>
-<td><span class="lieu-text">${d.lieu||'NC'}</span></td>
-<td><span class="places-num">${d.places}</span></td>
-<td><span class="cat-tag">${d.cat||'NC'}</span></td>
-<td><span class="source-tag ${srcC[d.source]||'src-other'}">${srcL[d.source]||d.source||'?'}</span></td>
-<td><span class="date-sub">${d.dateMsg||''}</span></td>
-<td><span class="status-pill ${SC[d.status]}"><span class="st-dot"></span>${SL[d.status]}</span></td>
-<td><button class="act-btn" onclick="toggleSt(${ri})" title="Changer statut">&#10003;</button><button class="act-btn del" onclick="delDemand(${ri})" title="Supprimer">&#10005;</button></td>
-</tr>`}).join('');
+    tb.innerHTML=f.map(d=>{const ri=demands.indexOf(d);return`<tr ondblclick="editDemand(${ri})"><td><div class="client-cell"><div class="avatar" style="background:${avatarBg(d.artist)}">${initials(d.client)}</div><div><div class="client-name">${d.client.split('(')[0].trim()}</div><div class="client-ig">${(d.client.match(/\(@?\S+\)/)||[''])[0]}</div></div></div></td><td><span class="tag ${tagClass(d.artist)}">${d.artist}</span></td><td><div class="date-main">${d.dateDisp||d.dateEvent||'NC'}</div></td><td><span class="lieu-text">${d.lieu||'NC'}</span></td><td><span class="places-num">${d.places}</span></td><td><span class="cat-tag">${d.cat||'NC'}</span></td><td><span class="source-tag ${srcC[d.source]||'src-other'}">${srcL[d.source]||d.source||'?'}</span></td><td><span class="date-sub">${d.dateMsg||''}</span></td><td><span class="status-pill ${SC[d.status]}"><span class="st-dot"></span>${SL[d.status]}</span></td><td><button class="act-btn" onclick="toggleSt(${ri})" title="Changer statut">&#10003;</button><button class="act-btn del" onclick="delDemand(${ri})" title="Supprimer">&#10005;</button></td></tr>`}).join('');
     updateStats();updateChips();updateBadges();
 }
-
 function updateStats(){
     document.getElementById('sTotal').textContent=demands.length;
     document.getElementById('sWaiting').textContent=demands.filter(d=>d.status==='new'||d.status==='pending').length;
-    const tp=demands.reduce((s,d)=>{const n=parseInt(d.places)||0;return s+n},0);
-    document.getElementById('sPlaces').textContent=tp;
-    const arts=new Set(demands.map(d=>d.artist.toUpperCase()));
-    document.getElementById('sArtists').textContent=arts.size;
+    document.getElementById('sPlaces').textContent=demands.reduce((s,d)=>s+(parseInt(d.places)||0),0);
+    document.getElementById('sArtists').textContent=new Set(demands.map(d=>d.artist.toUpperCase())).size;
 }
 function updateChips(){
     const a={};demands.forEach(d=>{const k=d.artist.toUpperCase();a[k]=(a[k]||0)+1});
@@ -366,158 +237,67 @@ function updateBadges(){
     document.getElementById('badgeDone').textContent=demands.filter(d=>d.status==='done').length;
     document.getElementById('badgeCancelled').textContent=demands.filter(d=>d.status==='cancelled').length;
 }
-
-// ===== FILTERS =====
 function filterArtist(a,el){cFilter=a;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));if(el)el.classList.add('active');render()}
 function filterStatus(s,el){cStatus=s;document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));if(el)el.classList.add('active');render()}
 function searchClient(v){cSearch=v.toLowerCase();render()}
-function doSort(k){demands.sort((a,b)=>{if(k==='dateEvent')return(a.dateEvent||'2099').localeCompare(b.dateEvent||'2099');return(a[k]||'').localeCompare(b[k]||'')});save();render()}
-
-// ===== ACTIONS =====
+function doSort(k){demands.sort((a,b)=>(a[k]||'').localeCompare(b[k]||''));save();render()}
 function toggleSt(i){const o=['new','pending','done','cancelled'];const c=o.indexOf(demands[i].status);demands[i].status=o[(c+1)%o.length];saveStatus(demands[i]);save();render()}
 function saveStatus(d){if(!d.sheetId)return;const s=JSON.parse(localStorage.getItem('lp2p_statuses')||'{}');s[d.sheetId]=d.status;localStorage.setItem('lp2p_statuses',JSON.stringify(s))}
-function delDemand(i){if(confirm('Supprimer ?')){demands.splice(i,1);save();render()}}
-function save(){localStorage.setItem('lp2p_v2',JSON.stringify(demands))}
-
-// ===== MODAL =====
+function delDemand(i){if(confirm('Supprimer cette demande ?')){const d=demands[i];if(d.sheetId){const del=JSON.parse(localStorage.getItem('lp2p_deleted')||'[]');del.push(d.sheetId);localStorage.setItem('lp2p_deleted',JSON.stringify(del))}demands.splice(i,1);save();render()}}
+function save(){localStorage.setItem('lp2p_v3',JSON.stringify(demands))}
 function openModal(){editIdx=-1;document.getElementById('mTitle').textContent='Nouvelle demande';['fClient','fArtist','fDateEvent','fLieu','fPlaces','fCat','fNotes'].forEach(id=>document.getElementById(id).value='');document.getElementById('fSource').value='instagram';document.getElementById('fStatus').value='new';document.getElementById('modal').classList.add('open')}
 function editDemand(i){editIdx=i;const d=demands[i];document.getElementById('mTitle').textContent='Modifier';document.getElementById('fClient').value=d.client;document.getElementById('fArtist').value=d.artist;document.getElementById('fDateEvent').value=d.dateDisp||d.dateEvent||'';document.getElementById('fLieu').value=d.lieu||'';document.getElementById('fPlaces').value=d.places;document.getElementById('fCat').value=d.cat||'';document.getElementById('fSource').value=d.source||'instagram';document.getElementById('fStatus').value=d.status;document.getElementById('fNotes').value=d.notes||'';document.getElementById('modal').classList.add('open')}
 function closeModal(){document.getElementById('modal').classList.remove('open')}
 function saveDemand(){const d={client:document.getElementById('fClient').value,artist:document.getElementById('fArtist').value.toUpperCase(),dateEvent:'',dateDisp:document.getElementById('fDateEvent').value,places:document.getElementById('fPlaces').value,cat:document.getElementById('fCat').value,source:document.getElementById('fSource').value,dateMsg:new Date().toISOString().split('T')[0],status:document.getElementById('fStatus').value,notes:document.getElementById('fNotes').value,lieu:document.getElementById('fLieu').value,manual:true};if(!d.client||!d.artist)return alert('Client et Artiste requis');if(editIdx>=0)demands[editIdx]=Object.assign(demands[editIdx],d);else demands.push(d);save();closeModal();render()}
-
-// ===== GOOGLE SHEETS SYNC =====
 const SHEET_ID='1Id3KCN3_EVGvr04LJiAxks2yGTB1wOgNUfuD_M5pnK8';
-const SHEET_URL='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/export?format=csv&cachebust='+Date.now();
-let lastSheetCount=parseInt(localStorage.getItem('lp2p_sheetCount')||'0');
-
-async function syncTelegram(){
+let lastCount=parseInt(localStorage.getItem('lp2p_cnt')||'0');
+async function doSync(){
     try{
         const r=await fetch('https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&t='+Date.now());
         const csv=await r.text();
-        const rows=csv.split('\n').slice(1).filter(r=>r.trim()&&r!==',');
+        const rows=csv.split('\n').slice(1).filter(r=>r.trim());
         const parsed=[];
+        const ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','CÉLINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','GIMS','JOSMAN','THEODORA','ROMY','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK'];
         rows.forEach(row=>{
-            // Parse CSV row (handle commas and quotes)
             const cols=[];let cur='',inQ=false;
-            for(let i=0;i<row.length;i++){
-                const c=row[i];
-                if(c==='"'){inQ=!inQ}
-                else if(c===','&&!inQ){cols.push(cur.replace(/^"|"$/g,'').trim());cur=''}
-                else{cur+=c}
-            }
+            for(let i=0;i<row.length;i++){const c=row[i];if(c==='"'){inQ=!inQ}else if(c===','&&!inQ){cols.push(cur.replace(/^"|"$/g,'').trim());cur=''}else{cur+=c}}
             cols.push(cur.replace(/^"|"$/g,'').trim());
-            const nom=cols[0]||'';
-            const ig=cols[1]||'';
-            const ev=cols[2]||'';
-            const pl=cols[3]||'';
-            const src=cols[4]||'';
-            const date=cols[5]||'';
-            if(!nom||nom==='—'||nom==='test'||nom==='Test') return;
-            // Detect artist
-            const ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','CÉLINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','GIMS','JOSMAN','THEODORA','ROMY','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK'];
+            const nom=cols[0]||'',ig=cols[1]||'',ev=cols[2]||'',pl=cols[3]||'',src=cols[4]||'',date=cols[5]||'';
+            if(!nom||nom==='—'||nom.toLowerCase()==='test') return;
             const evUp=(ev||'').toUpperCase();
-            let artist='';
-            for(const a of ARTISTS){if(evUp.includes(a)){artist=a;break}}
-            if(artist==='BADBUNNY')artist='BAD BUNNY';
-            if(artist==='CÉLINE DION')artist='CELINE DION';
-            if(artist==='AYA'&&!evUp.includes('NAKAMURA'))artist='AYA NAKAMURA';
-            if(!artist) artist=(ev||'').split('/')[0].split(' ').slice(0,3).join(' ').toUpperCase().trim();
-            // Category
+            let artist='';for(const a of ARTISTS){if(evUp.includes(a)){artist=a;break}}
+            if(artist==='BADBUNNY')artist='BAD BUNNY';if(artist==='CÉLINE DION')artist='CELINE DION';if(artist==='AYA')artist='AYA NAKAMURA';
+            if(!artist)artist=(ev||'').split('/')[0].split(' ').slice(0,3).join(' ').toUpperCase().trim();
             let cat='NC';
-            if(/fosse|parterre debout/i.test(ev))cat='FOSSE';
-            if(/fosse or/i.test(ev))cat='FOSSE OR';
-            if(/vip|diamant|carr[eé] or/i.test(ev))cat='VIP';
-            if(/carr[eé] or/i.test(ev))cat='CARRE OR';
-            if(/cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='CAT '+m[1]}
-            if(/cat\s*(\d)/i.test(ev)){const m=ev.match(/cat\s*(\d)/i);cat='CAT '+m[1]}
-            // Source
-            let source='instagram';
-            if(src){const sl=src.toLowerCase();if(sl.includes('tiktok'))source='tiktok';else if(sl.includes('ami'))source='recommandation'}
-            // Date
-            const dateMsg=date?date.split('T')[0]:'';
-            parsed.push({
-                client:(nom||'')+(ig&&ig!=='—'?' ('+ig+')':''),
-                artist:artist||'NC',
-                dateEvent:'',
-                dateDisp:ev||'',
-                places:pl||'1',
-                cat,
-                source,
-                dateMsg,
-                status:'new',
-                notes:ev||'',
-                lieu:'',
-                sheetId:nom+ig+date
-            });
+            if(/fosse or/i.test(ev))cat='FOSSE OR';else if(/fosse/i.test(ev))cat='FOSSE';
+            if(/vip|diamant/i.test(ev))cat='VIP';if(/carr[eé] or/i.test(ev))cat='CARRE OR';
+            if(/cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){cat='CAT '+ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i)[1]}
+            if(/cat\s*(\d)/i.test(ev)){cat='CAT '+ev.match(/cat\s*(\d)/i)[1]}
+            let source='instagram';if(src&&src.toLowerCase().includes('tiktok'))source='tiktok';else if(src&&src.toLowerCase().includes('ami'))source='recommandation';
+            const sheetId=nom+ig+date;
+            parsed.push({client:(nom)+(ig&&ig!=='—'?' ('+ig+')':''),artist:artist||'NC',dateEvent:'',dateDisp:ev||'',places:pl||'1',cat,source,dateMsg:date?date.split('T')[0]:'',status:'new',notes:ev||'',lieu:'',sheetId,manual:false});
         });
-        // Check for new entries
-        if(parsed.length>lastSheetCount&&lastSheetCount>0){
-            const newCount=parsed.length-lastSheetCount;
-            showToast(newCount+' nouvelle'+(newCount>1?'s':'')+' demande'+(newCount>1?'s':''),'via Tally');
-        }
-        lastSheetCount=parsed.length;
-        localStorage.setItem('lp2p_sheetCount',lastSheetCount+'');
-        // Merge: keep statuses + manual demands
+        if(parsed.length>lastCount&&lastCount>0){showToast((parsed.length-lastCount)+' nouvelle(s) demande(s)','via Tally')}
+        lastCount=parsed.length;localStorage.setItem('lp2p_cnt',lastCount+'');
         const savedStatuses=JSON.parse(localStorage.getItem('lp2p_statuses')||'{}');
+        const deletedIds=JSON.parse(localStorage.getItem('lp2p_deleted')||'[]');
         const manualDemands=demands.filter(d=>d.manual);
-        demands=[...parsed.map(d=>{
-            // Restore saved status if exists
-            if(savedStatuses[d.sheetId]){d.status=savedStatuses[d.sheetId]}
-            d.manual=false;
-            return d;
-        }),...manualDemands];
+        demands=[...parsed.filter(d=>!deletedIds.includes(d.sheetId)).map(d=>{if(savedStatuses[d.sheetId])d.status=savedStatuses[d.sheetId];return d}),...manualDemands];
         save();render();
-        updateSyncUI(0);
+        document.getElementById('syncDot').className='sync-dot live';
+        document.getElementById('syncLabel').textContent='Auto-sync actif';
+        document.getElementById('syncSub').textContent='Derniere sync: '+new Date().toLocaleTimeString('fr-FR');
     }catch(e){
-        console.error('Sheet sync error',e);
+        console.error(e);
         document.getElementById('syncDot').className='sync-dot off';
         document.getElementById('syncLabel').textContent='Erreur sync';
     }
 }
-function parseTG(t,ts){
-    if(!t.includes('Nom'))return null;
-    const nom=(t.match(/Nom\s*:\s*(.+)/i)||[])[1];
-    if(!nom||nom.trim()==='—')return null;
-    const ig=(t.match(/Instagram\s*:\s*(@?\S+)/i)||[])[1];
-    const ev=(t.match(/[EÉé]v[eéè]nement\s*:\s*(.+)/i)||[])[1];
-    const pl=(t.match(/Places?\s*:\s*(\S+)/i)||[])[1];
-    const src=(t.match(/Source\s*:\s*(.+)/i)||[])[1];
-    if(!ev||ev.trim()==='—')return null;
-    let artist=ev||'';
-    const ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','CÉLINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','CENTRAL CEE','BURNA BOY','RAMMSTEIN','COLDPLAY','ED SHEERAN','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','GIMS','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK','FREEZE CORLEONE','VALD','HEUSS','LACRIM','MAES','NAPS','SOOLKING','GAMBI','KOBA LAD'];
-    const up=ev.toUpperCase();
-    let found='';for(const a of ARTISTS){if(up.includes(a)){found=a;break}}
-    if(found==='CÉLINE DION')found='CELINE DION';if(found==='BADBUNNY')found='BAD BUNNY';if(found==='AYA'&&!found.includes('NAKAMURA'))found='AYA NAKAMURA';
-    let cat='NC';
-    if(/fosse|parterre debout/i.test(ev))cat='FOSSE';
-    if(/vip|diamant|carr[eé] or/i.test(ev))cat='VIP';
-    if(/cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='CAT '+m[1]}
-    if(/parterre.*assis.*cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='PARTERRE CAT '+m[1]}
-    if(/gradin.*cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='GRADIN CAT '+m[1]}
-    let srcType='instagram';
-    if(src){const sl=src.toLowerCase();if(sl.includes('tiktok'))srcType='tiktok';else if(sl.includes('telegram'))srcType='telegram';else if(sl.includes('ami')||sl.includes('autre'))srcType='autre'}
-    return{client:(nom||'').trim()+(ig&&ig!=='—'?' ('+ig.trim()+')':''),artist:found||ev.split('/')[0].trim().toUpperCase(),dateEvent:'',dateDisp:ev,places:pl||'1',cat,source:srcType,dateMsg:new Date(ts*1000).toISOString().split('T')[0],status:'new',notes:ev,lieu:''}
-}
-function updateSyncUI(n){
-    document.getElementById('syncDot').className='sync-dot live';
-    document.getElementById('syncLabel').textContent='Auto-sync actif';
-    document.getElementById('syncSub').textContent='Derniere sync: '+new Date().toLocaleTimeString('fr-FR');
-}
 function showToast(t,s){const to=document.getElementById('toast');document.getElementById('toastText').textContent=t;document.getElementById('toastSub').textContent=s||'';to.classList.add('show');setTimeout(()=>to.classList.remove('show'),4000)}
-
-// ===== EXPORT CSV =====
-function exportCSV(){
-    let csv='Client,Artiste,Date,Lieu,Places,Categorie,Source,Recu le,Statut,Notes\n';
-    demands.forEach(d=>{csv+=`"${d.client}","${d.artist}","${d.dateDisp||d.dateEvent||''}","${d.lieu||''}","${d.places}","${d.cat||''}","${d.source}","${d.dateMsg||''}","${d.status}","${(d.notes||'').replace(/"/g,"'")}"\n`});
-    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='demandes_lesplaces2paris.csv';a.click();URL.revokeObjectURL(url);
-}
-
-// ===== INIT =====
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-render();
-// Auto-sync every 30s
-syncTelegram();
-setInterval(syncTelegram,30000);
+render();doSync();setInterval(doSync,30000);
 </script>
 </body>
+</html>
+
 </html>
