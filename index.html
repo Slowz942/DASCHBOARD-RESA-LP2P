@@ -3,655 +3,518 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LesPlaces2Paris - Dashboard Demandes</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>LesPlaces2Paris - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
+        :root{
+            --bg:#0a0a0a;--surface:#141414;--surface2:#1a1a1a;--surface3:#222222;
+            --border:#2a2020;--border2:#3a2a2a;
+            --text:#f5f0f0;--text2:#b0a0a0;--text3:#706060;
+            --gold:#dc2626;--gold2:#b91c1c;--gold-soft:rgba(220,38,38,.06);--gold-border:rgba(220,38,38,.15);
+            --blue:#3b82f6;--green:#22c55e;--red:#dc2626;--purple:#a855f7;--cyan:#06b6d4;--pink:#ec4899;
+            --orange:#f97316;--emerald:#10b981;
+            --radius:12px;
+        }
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Inter',sans-serif;background:#0f1117;color:#e1e1e1;min-height:100vh}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+        ::selection{background:var(--gold);color:#000}
 
-        /* HEADER */
-        .header{background:linear-gradient(135deg,#1a1d2e,#252a3a);padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:100;backdrop-filter:blur(20px)}
-        .header-left{display:flex;align-items:center;gap:15px}
-        .logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f39c12,#e67e22);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:#fff}
-        .header h1{font-size:1.3rem;font-weight:700;color:#fff}
-        .header h1 span{color:#f39c12;font-weight:800}
-        .header-right{display:flex;align-items:center;gap:15px}
-        .stat-badge{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:8px 16px;border-radius:10px;font-size:.8rem;display:flex;align-items:center;gap:8px}
-        .stat-badge .num{font-weight:700;color:#f39c12;font-size:1.1rem}
-        .btn-add{background:linear-gradient(135deg,#f39c12,#e67e22);color:#fff;border:none;padding:10px 20px;border-radius:10px;font-weight:600;font-size:.85rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:6px}
-        .btn-add:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(243,156,18,.3)}
+        /* SIDEBAR */
+        .layout{display:flex;min-height:100vh}
+        .sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;display:flex;flex-direction:column;position:fixed;height:100vh;overflow-y:auto;z-index:50}
+        .sidebar-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;padding:0 4px}
+        .sidebar-logo .icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#dc2626,#991b1b);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;color:#fff;box-shadow:0 4px 15px rgba(220,38,38,.3)}
+        .sidebar-logo h1{font-size:1rem;font-weight:700;color:var(--text);line-height:1.2}
+        .sidebar-logo h1 span{color:var(--gold)}
+
+        .sidebar-section{margin-bottom:24px}
+        .sidebar-section-title{font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text3);padding:0 12px;margin-bottom:8px}
+        .sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all .15s;font-size:.85rem;color:var(--text2);position:relative}
+        .sidebar-item:hover{background:var(--surface2);color:var(--text)}
+        .sidebar-item.active{background:var(--gold-soft);color:var(--gold);font-weight:600}
+        .sidebar-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--gold);border-radius:0 3px 3px 0}
+        .sidebar-item .badge{margin-left:auto;background:var(--surface3);padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:600;min-width:24px;text-align:center}
+        .sidebar-item.active .badge{background:rgba(245,158,11,.15);color:var(--gold)}
+
+        .sidebar-divider{height:1px;background:var(--border);margin:16px 8px}
+
+        /* Sync status */
+        .sync-status{margin-top:auto;padding:12px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)}
+        .sync-status .sync-title{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px}
+        .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+        .sync-dot.live{background:var(--green);box-shadow:0 0 8px rgba(34,197,94,.5);animation:pulse 2s infinite}
+        .sync-dot.off{background:var(--red)}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+        .sync-info{font-size:.8rem;color:var(--text2);display:flex;align-items:center}
+        .sync-sub{font-size:.7rem;color:var(--text3);margin-top:4px}
+        .btn-sync{width:100%;margin-top:10px;padding:8px;background:var(--surface3);border:1px solid var(--border);color:var(--text2);border-radius:8px;font-size:.75rem;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+        .btn-sync:hover{background:rgba(220,38,38,.08);color:#dc2626;border-color:rgba(220,38,38,.2)}
+
+        /* MAIN */
+        .main{flex:1;margin-left:260px;padding:0}
+
+        /* TOP BAR */
+        .topbar{padding:20px 30px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(9,9,11,.85);backdrop-filter:blur(12px);z-index:40}
+        .topbar-left h2{font-size:1.4rem;font-weight:700}
+        .topbar-left p{font-size:.8rem;color:var(--text3);margin-top:2px}
+        .topbar-right{display:flex;gap:10px}
+        .btn{padding:9px 18px;border-radius:8px;font-size:.8rem;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;border:1px solid var(--border);display:flex;align-items:center;gap:6px}
+        .btn-ghost{background:transparent;color:var(--text2)}
+        .btn-ghost:hover{background:var(--surface2);color:var(--text)}
+        .btn-primary{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;border:none;font-weight:600}
+        .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(220,38,38,.35)}
+
+        /* STATS ROW */
+        .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 30px}
+        .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+        .stat-card .stat-label{font-size:.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);margin-bottom:8px}
+        .stat-card .stat-value{font-size:2rem;font-weight:800;line-height:1}
+        .stat-card .stat-sub{font-size:.75rem;color:var(--text3);margin-top:4px}
+        .stat-gold .stat-value{color:#dc2626}
+        .stat-blue .stat-value{color:var(--blue)}
+        .stat-green .stat-value{color:var(--green)}
+        .stat-purple .stat-value{color:var(--purple)}
 
         /* FILTERS */
-        .filters{padding:20px 30px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid rgba(255,255,255,.04)}
-        .filter-label{font-size:.75rem;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.3);margin-right:5px}
-        .filter-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#aaa;padding:8px 18px;border-radius:8px;font-size:.8rem;cursor:pointer;transition:all .2s;font-family:'Inter',sans-serif}
-        .filter-btn:hover{background:rgba(255,255,255,.1);color:#fff}
-        .filter-btn.active{background:linear-gradient(135deg,#f39c12,#e67e22);color:#fff;border-color:transparent;font-weight:600}
-        .filter-btn .count{background:rgba(0,0,0,.2);padding:2px 8px;border-radius:20px;margin-left:6px;font-size:.7rem}
-        .search-box{margin-left:auto;position:relative}
-        .search-box input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#fff;padding:9px 15px 9px 38px;border-radius:8px;font-size:.85rem;width:250px;font-family:'Inter',sans-serif;transition:border-color .3s}
-        .search-box input:focus{outline:none;border-color:rgba(243,156,18,.4)}
-        .search-box input::placeholder{color:rgba(255,255,255,.25)}
-        .search-box::before{content:'';position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-radius:50%}
-
-        /* STATUS FILTERS */
-        .status-bar{padding:15px 30px;display:flex;gap:20px;border-bottom:1px solid rgba(255,255,255,.04)}
-        .status-tab{font-size:.8rem;color:rgba(255,255,255,.4);cursor:pointer;padding:5px 0;border-bottom:2px solid transparent;transition:all .2s}
-        .status-tab:hover{color:rgba(255,255,255,.7)}
-        .status-tab.active{color:#f39c12;border-bottom-color:#f39c12;font-weight:600}
+        .filters-bar{padding:16px 30px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+        .filter-chip{padding:6px 14px;border-radius:20px;font-size:.78rem;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'Inter',sans-serif;white-space:nowrap}
+        .filter-chip:hover{border-color:var(--gold-border);color:var(--text)}
+        .filter-chip.active{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;border-color:#dc2626;font-weight:600;box-shadow:0 2px 10px rgba(220,38,38,.25)}
+        .filter-chip .cnt{font-size:.7rem;opacity:.7;margin-left:4px}
+        .search-input{margin-left:auto;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:.8rem;width:220px;font-family:'Inter',sans-serif}
+        .search-input:focus{outline:none;border-color:var(--gold-border)}
+        .search-input::placeholder{color:var(--text3)}
 
         /* TABLE */
-        .table-container{padding:0 30px 30px}
-        table{width:100%;border-collapse:collapse;margin-top:15px}
-        thead th{text-align:left;padding:14px 16px;font-size:.7rem;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.3);border-bottom:1px solid rgba(255,255,255,.06);font-weight:600;cursor:pointer;transition:color .2s;white-space:nowrap}
-        thead th:hover{color:rgba(255,255,255,.6)}
-        thead th.sorted{color:#f39c12}
-        tbody tr{border-bottom:1px solid rgba(255,255,255,.03);transition:background .2s;cursor:pointer}
-        tbody tr:hover{background:rgba(255,255,255,.03)}
-        tbody td{padding:14px 16px;font-size:.85rem;white-space:nowrap}
+        .table-wrap{padding:0 30px 30px}
+        table{width:100%;border-collapse:separate;border-spacing:0;margin-top:12px}
+        thead th{text-align:left;padding:10px 14px;font-size:.68rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap;position:sticky;top:62px;background:var(--bg);z-index:5;cursor:pointer}
+        thead th:hover{color:var(--text2)}
+        tbody tr{transition:background .15s;border-radius:8px}
+        tbody tr:hover{background:rgba(245,158,11,.03)}
+        tbody td{padding:14px 14px;font-size:.83rem;border-bottom:1px solid rgba(255,255,255,.04);white-space:nowrap}
 
-        /* Client */
         .client-cell{display:flex;align-items:center;gap:10px}
-        .client-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0}
-        .client-name{font-weight:500;color:#fff}
-        .client-ig{font-size:.75rem;color:rgba(255,255,255,.3)}
+        .avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+        .client-name{font-weight:500;color:var(--text)}
+        .client-ig{font-size:.72rem;color:var(--text3)}
 
-        /* Artiste tag */
-        .artist-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;font-size:.8rem;font-weight:600}
-        .artist-jul{background:rgba(231,76,60,.15);color:#e74c3c}
-        .artist-sch{background:rgba(155,89,182,.15);color:#9b59b6}
-        .artist-ninho{background:rgba(46,204,113,.15);color:#2ecc71}
-        .artist-pnl{background:rgba(52,152,219,.15);color:#3498db}
-        .artist-booba{background:rgba(241,196,15,.15);color:#f1c40f}
-        .artist-damso{background:rgba(230,126,34,.15);color:#e67e22}
-        .artist-orelsan{background:rgba(26,188,156,.15);color:#1abc9c}
-        .artist-other{background:rgba(255,255,255,.08);color:#aaa}
+        .tag{display:inline-block;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:600;white-space:nowrap;letter-spacing:.5px}
+        .tag-jul{background:rgba(239,68,68,.12);color:#f87171}
+        .tag-sch{background:rgba(168,85,247,.12);color:#c084fc}
+        .tag-ninho{background:rgba(34,197,94,.12);color:#4ade80}
+        .tag-pnl{background:rgba(59,130,246,.12);color:#60a5fa}
+        .tag-booba{background:rgba(245,158,11,.12);color:#fbbf24}
+        .tag-damso{background:rgba(249,115,22,.12);color:#fb923c}
+        .tag-celine{background:rgba(236,72,153,.12);color:#f472b6}
+        .tag-badbunny{background:rgba(6,182,212,.12);color:#22d3ee}
+        .tag-guetta{background:rgba(139,92,246,.12);color:#a78bfa}
+        .tag-bruno{background:rgba(16,185,129,.12);color:#34d399}
+        .tag-aya{background:rgba(251,146,60,.12);color:#fdba74}
+        .tag-tame{background:rgba(20,184,166,.12);color:#2dd4bf}
+        .tag-other{background:var(--surface3);color:var(--text2)}
 
-        /* Places / Cat */
-        .places-badge{background:rgba(255,255,255,.06);padding:4px 12px;border-radius:20px;font-weight:600;font-size:.85rem}
-        .cat-badge{padding:4px 10px;border-radius:6px;font-weight:600;font-size:.8rem}
-        .cat-1{background:rgba(241,196,15,.15);color:#f1c40f}
-        .cat-2{background:rgba(52,152,219,.15);color:#3498db}
-        .cat-3{background:rgba(46,204,113,.15);color:#2ecc71}
-        .cat-fosse{background:rgba(231,76,60,.15);color:#e74c3c}
-        .cat-vip{background:rgba(155,89,182,.15);color:#9b59b6}
+        .cat-tag{font-size:.72rem;padding:3px 8px;border-radius:4px;font-weight:500;background:var(--surface3);color:var(--text2)}
+        .places-num{font-weight:700;color:var(--text)}
+        .source-tag{font-size:.68rem;padding:2px 7px;border-radius:4px;font-weight:600}
+        .src-ig{background:rgba(193,53,132,.12);color:#d946ef}
+        .src-tg{background:rgba(0,136,204,.12);color:#38bdf8}
+        .src-tk{background:rgba(255,0,80,.12);color:#fb7185}
+        .src-other{background:var(--surface3);color:var(--text3)}
+        .date-main{font-weight:600;color:var(--text)}
+        .date-sub{font-size:.7rem;color:var(--text3)}
+        .lieu-text{font-size:.78rem;color:var(--text2)}
 
-        /* Status */
-        .status{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;font-weight:500}
-        .status-dot{width:7px;height:7px;border-radius:50%}
-        .status-new .status-dot{background:#f39c12}
-        .status-new{color:#f39c12}
-        .status-pending .status-dot{background:#3498db}
-        .status-pending{color:#3498db}
-        .status-done .status-dot{background:#2ecc71}
-        .status-done{color:#2ecc71}
-        .status-cancelled .status-dot{background:#e74c3c}
-        .status-cancelled{color:#e74c3c}
+        .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:500;padding:4px 10px;border-radius:20px}
+        .st-new{background:rgba(220,38,38,.1);color:#f87171}
+        .st-pending{background:rgba(59,130,246,.1);color:var(--blue)}
+        .st-done{background:rgba(34,197,94,.1);color:var(--green)}
+        .st-cancelled{background:rgba(239,68,68,.1);color:var(--red)}
+        .st-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
 
-        /* Source */
-        .source-badge{font-size:.75rem;padding:3px 8px;border-radius:4px;font-weight:500}
-        .source-ig{background:rgba(193,53,132,.15);color:#c13584}
-        .source-tg{background:rgba(0,136,204,.15);color:#0088cc}
+        .act-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .15s;margin-right:3px}
+        .act-btn:hover{background:rgba(34,197,94,.08);color:#22c55e;border-color:rgba(34,197,94,.2)}
+        .act-btn.del:hover{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.2)}
 
-        /* Date */
-        .date-event{font-weight:600;color:#fff}
-        .date-msg{font-size:.75rem;color:rgba(255,255,255,.3)}
-
-        /* Actions */
-        .action-btn{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:#aaa;width:32px;height:32px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .2s;font-size:.9rem;margin-right:4px}
-        .action-btn:hover{background:rgba(46,204,113,.15);color:#2ecc71;border-color:rgba(46,204,113,.3)}
-        .action-btn.delete:hover{background:rgba(231,76,60,.15);color:#e74c3c;border-color:rgba(231,76,60,.3)}
-
-        /* Empty state */
-        .empty-state{text-align:center;padding:80px 20px;color:rgba(255,255,255,.3)}
-        .empty-state .icon{font-size:3rem;margin-bottom:15px}
-        .empty-state p{font-size:.9rem}
+        .empty{text-align:center;padding:60px 20px;color:var(--text3)}
+        .empty .em-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}
 
         /* MODAL */
-        .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px)}
-        .modal-overlay.active{display:flex}
-        .modal{background:#1a1d2e;border-radius:16px;padding:30px;width:500px;max-width:90vw;border:1px solid rgba(255,255,255,.08);box-shadow:0 25px 60px rgba(0,0,0,.4)}
-        .modal h2{font-size:1.2rem;margin-bottom:20px;color:#fff}
-        .modal-row{display:flex;gap:12px;margin-bottom:14px}
-        .modal-field{flex:1}
-        .modal-field label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.3);margin-bottom:6px}
-        .modal-field input,.modal-field select{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#fff;padding:10px 12px;border-radius:8px;font-size:.85rem;font-family:'Inter',sans-serif}
-        .modal-field input:focus,.modal-field select:focus{outline:none;border-color:rgba(243,156,18,.4)}
-        .modal-field select{cursor:pointer}
-        .modal-field select option{background:#1a1d2e;color:#fff}
-        .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
-        .btn-cancel{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#aaa;padding:10px 20px;border-radius:10px;font-size:.85rem;cursor:pointer;font-family:'Inter',sans-serif}
-        .btn-save{background:linear-gradient(135deg,#f39c12,#e67e22);border:none;color:#fff;padding:10px 25px;border-radius:10px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+        .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+        .modal-bg.open{display:flex}
+        .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:520px;max-width:92vw;max-height:90vh;overflow-y:auto}
+        .modal h2{font-size:1.1rem;font-weight:700;margin-bottom:20px}
+        .m-row{display:flex;gap:12px;margin-bottom:14px}
+        .m-field{flex:1}
+        .m-field label{display:block;font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:5px}
+        .m-field input,.m-field select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:.83rem;font-family:'Inter',sans-serif}
+        .m-field input:focus,.m-field select:focus{outline:none;border-color:var(--gold-border)}
+        .m-field select option{background:var(--surface2)}
+        .m-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 
-        /* Responsive */
-        @media(max-width:768px){
-            .header{padding:15px;flex-wrap:wrap;gap:10px}
-            .filters{padding:15px;overflow-x:auto}
-            .search-box{margin-left:0;width:100%}
-            .search-box input{width:100%}
-            .table-container{padding:0 10px 20px;overflow-x:auto}
-            .stat-badge{display:none}
-            .status-bar{padding:10px 15px;overflow-x:auto}
+        /* NOTIFICATION TOAST */
+        .toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--gold-border);border-radius:10px;padding:14px 20px;z-index:300;display:flex;align-items:center;gap:10px;transform:translateY(100px);opacity:0;transition:all .4s cubic-bezier(.4,0,.2,1);box-shadow:0 10px 40px rgba(0,0,0,.3)}
+        .toast.show{transform:translateY(0);opacity:1}
+        .toast-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0}
+        .toast-text{font-size:.83rem;color:var(--text)}
+        .toast-sub{font-size:.72rem;color:var(--text3)}
+
+        /* RESPONSIVE */
+        @media(max-width:900px){
+            .sidebar{display:none}
+            .main{margin-left:0}
+            .stats-row{grid-template-columns:repeat(2,1fr);padding:16px}
+            .topbar,.filters-bar,.table-wrap{padding-left:16px;padding-right:16px}
+            .search-input{width:100%;margin-left:0;margin-top:8px}
+        }
+        @media(max-width:500px){
+            .stats-row{grid-template-columns:1fr}
         }
     </style>
 </head>
 <body>
-
-    <!-- HEADER -->
-    <header class="header">
-        <div class="header-left">
-            <div class="logo">LP</div>
-            <h1>Les<span>Places</span>2Paris</h1>
+<div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="icon">LP</div>
+            <h1>Les<span>Places</span><br>2Paris</h1>
         </div>
-        <div class="header-right">
-            <div class="stat-badge">Demandes <span class="num" id="totalCount">0</span></div>
-            <div class="stat-badge">En attente <span class="num" id="pendingCount" style="color:#3498db">0</span></div>
-            <button class="btn-sync" onclick="syncTelegram()" id="syncBtn" style="background:rgba(0,136,204,.15);border:1px solid rgba(0,136,204,.3);color:#0088cc;padding:10px 20px;border-radius:10px;font-weight:600;font-size:.85rem;cursor:pointer;transition:all .3s;display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif">&#9889; Sync Telegram</button>
-            <button class="btn-add" onclick="openModal()">+ Nouvelle demande</button>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Menu</div>
+            <div class="sidebar-item active" onclick="filterStatus('all',this)">
+                <span>&#9776;</span> Toutes les demandes <span class="badge" id="badgeAll">0</span>
+            </div>
+            <div class="sidebar-item" onclick="filterStatus('new',this)">
+                <span>&#9733;</span> Nouvelles <span class="badge" id="badgeNew">0</span>
+            </div>
+            <div class="sidebar-item" onclick="filterStatus('pending',this)">
+                <span>&#9203;</span> En cours <span class="badge" id="badgePending">0</span>
+            </div>
+            <div class="sidebar-item" onclick="filterStatus('done',this)">
+                <span>&#10003;</span> Traitees <span class="badge" id="badgeDone">0</span>
+            </div>
+            <div class="sidebar-item" onclick="filterStatus('cancelled',this)">
+                <span>&#10007;</span> Annulees <span class="badge" id="badgeCancelled">0</span>
+            </div>
         </div>
-    </header>
-
-    <!-- FILTERS ARTISTES -->
-    <div class="filters">
-        <span class="filter-label">Artiste</span>
-        <button class="filter-btn active" onclick="filterArtist('all',this)">Tous</button>
-        <div id="artistFilters"></div>
-        <div class="search-box">
-            <input type="text" placeholder="Rechercher un client..." oninput="searchClient(this.value)">
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Raccourcis</div>
+            <div class="sidebar-item" onclick="exportCSV()"><span>&#128190;</span> Exporter CSV</div>
         </div>
-    </div>
+        <div class="sync-status">
+            <div class="sync-title">Tally Sync</div>
+            <div class="sync-info"><span class="sync-dot live" id="syncDot"></span> <span id="syncLabel">Auto-sync actif</span></div>
+            <div class="sync-sub" id="syncSub">Derniere sync: --</div>
+            <button class="btn-sync" onclick="syncTelegram()" id="syncBtn">Sync Google Sheet</button>
+        </div>
+    </aside>
 
-    <!-- STATUS TABS -->
-    <div class="status-bar">
-        <div class="status-tab active" onclick="filterStatus('all',this)">Toutes</div>
-        <div class="status-tab" onclick="filterStatus('new',this)">Nouvelles</div>
-        <div class="status-tab" onclick="filterStatus('pending',this)">En cours</div>
-        <div class="status-tab" onclick="filterStatus('done',this)">Traitees</div>
-        <div class="status-tab" onclick="filterStatus('cancelled',this)">Annulees</div>
-    </div>
+    <!-- MAIN -->
+    <main class="main">
+        <div class="topbar">
+            <div class="topbar-left">
+                <h2>Demandes</h2>
+                <p id="topbarSub">Gerez toutes vos demandes de places</p>
+            </div>
+            <div class="topbar-right">
+                <button class="btn btn-ghost" onclick="exportCSV()">&#128190; Export</button>
+                <button class="btn btn-primary" onclick="openModal()">+ Nouvelle</button>
+            </div>
+        </div>
 
-    <!-- TABLE -->
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th onclick="sortTable('client')">Client</th>
-                    <th onclick="sortTable('artist')">Artiste</th>
-                    <th onclick="sortTable('dateEvent')">Date Evenement</th>
+        <!-- STATS -->
+        <div class="stats-row">
+            <div class="stat-card stat-gold"><div class="stat-label">Total demandes</div><div class="stat-value" id="sTotal">0</div><div class="stat-sub">toutes sources</div></div>
+            <div class="stat-card stat-blue"><div class="stat-label">En attente</div><div class="stat-value" id="sWaiting">0</div><div class="stat-sub">a traiter</div></div>
+            <div class="stat-card stat-green"><div class="stat-label">Places demandees</div><div class="stat-value" id="sPlaces">0</div><div class="stat-sub">au total</div></div>
+            <div class="stat-card stat-purple"><div class="stat-label">Artistes</div><div class="stat-value" id="sArtists">0</div><div class="stat-sub">differents</div></div>
+        </div>
+
+        <!-- ARTIST FILTERS -->
+        <div class="filters-bar">
+            <button class="filter-chip active" onclick="filterArtist('all',this)">Tous</button>
+            <div id="artistChips" style="display:contents"></div>
+            <input type="text" class="search-input" placeholder="Rechercher..." oninput="searchClient(this.value)" id="searchBox">
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-wrap">
+            <table>
+                <thead><tr>
+                    <th onclick="doSort('client')">Client</th>
+                    <th onclick="doSort('artist')">Artiste</th>
+                    <th onclick="doSort('dateEvent')">Evenement</th>
+                    <th>Lieu</th>
                     <th>Places</th>
                     <th>Categorie</th>
                     <th>Source</th>
-                    <th onclick="sortTable('dateMsg')">Date Message</th>
+                    <th onclick="doSort('dateMsg')">Recu le</th>
                     <th>Statut</th>
                     <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-            </tbody>
-        </table>
-        <div class="empty-state" id="emptyState">
-            <div class="icon">&#128229;</div>
-            <p>Aucune demande pour le moment.<br>Ajoute des demandes avec le bouton + en haut.</p>
+                </tr></thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            <div class="empty" id="empty"><div class="em-icon">&#128229;</div><p>Aucune demande</p></div>
         </div>
+    </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <h2 id="mTitle">Nouvelle demande</h2>
+        <div class="m-row"><div class="m-field"><label>Client</label><input id="fClient" placeholder="Nom Prenom (@instagram)"></div><div class="m-field"><label>Source</label><select id="fSource"><option value="instagram">Instagram</option><option value="telegram">Telegram</option><option value="tiktok">TikTok</option><option value="autre">Autre</option></select></div></div>
+        <div class="m-row"><div class="m-field"><label>Artiste</label><input id="fArtist" placeholder="JUL, Celine Dion..."></div><div class="m-field"><label>Date evenement</label><input id="fDateEvent" placeholder="16 Mai 2026"></div></div>
+        <div class="m-row"><div class="m-field"><label>Lieu</label><input id="fLieu" placeholder="Stade de France, Accor Arena..."></div><div class="m-field"><label>Places</label><input id="fPlaces" type="text" placeholder="2"></div></div>
+        <div class="m-row"><div class="m-field"><label>Categorie</label><input id="fCat" placeholder="FOSSE, CAT 1, VIP..."></div><div class="m-field"><label>Statut</label><select id="fStatus"><option value="new">Nouvelle</option><option value="pending">En cours</option><option value="done">Traitee</option><option value="cancelled">Annulee</option></select></div></div>
+        <div class="m-row"><div class="m-field"><label>Notes</label><input id="fNotes" placeholder="Details..."></div></div>
+        <div class="m-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveDemand()">Enregistrer</button></div>
     </div>
+</div>
 
-    <!-- MODAL AJOUT -->
-    <div class="modal-overlay" id="modal">
-        <div class="modal">
-            <h2 id="modalTitle">Nouvelle demande</h2>
-            <div class="modal-row">
-                <div class="modal-field">
-                    <label>Client (Instagram / Telegram)</label>
-                    <input type="text" id="inputClient" placeholder="@nom_client">
-                </div>
-                <div class="modal-field">
-                    <label>Source</label>
-                    <select id="inputSource">
-                        <option value="instagram">Instagram</option>
-                        <option value="telegram">Telegram</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-row">
-                <div class="modal-field">
-                    <label>Artiste</label>
-                    <input type="text" id="inputArtist" placeholder="JUL, SCH, Ninho...">
-                </div>
-                <div class="modal-field">
-                    <label>Date Evenement</label>
-                    <input type="text" id="inputDateEvent" placeholder="16 Mai 2026">
-                </div>
-            </div>
-            <div class="modal-row">
-                <div class="modal-field">
-                    <label>Nombre de places</label>
-                    <input type="number" id="inputPlaces" placeholder="2" min="1">
-                </div>
-                <div class="modal-field">
-                    <label>Categorie</label>
-                    <select id="inputCat">
-                        <option value="CAT 1">CAT 1</option>
-                        <option value="CAT 2">CAT 2</option>
-                        <option value="CAT 3">CAT 3</option>
-                        <option value="FOSSE">FOSSE</option>
-                        <option value="VIP">VIP</option>
-                        <option value="NC">Non precise</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-row">
-                <div class="modal-field">
-                    <label>Date du message</label>
-                    <input type="date" id="inputDateMsg">
-                </div>
-                <div class="modal-field">
-                    <label>Statut</label>
-                    <select id="inputStatus">
-                        <option value="new">Nouvelle</option>
-                        <option value="pending">En cours</option>
-                        <option value="done">Traitee</option>
-                        <option value="cancelled">Annulee</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-row">
-                <div class="modal-field" style="flex:1">
-                    <label>Notes</label>
-                    <input type="text" id="inputNotes" placeholder="Details supplementaires...">
-                </div>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeModal()">Annuler</button>
-                <button class="btn-save" onclick="saveDemand()">Enregistrer</button>
-            </div>
-        </div>
-    </div>
+<!-- TOAST -->
+<div class="toast" id="toast"><div class="toast-dot"></div><div><div class="toast-text" id="toastText">Nouvelle demande</div><div class="toast-sub" id="toastSub"></div></div></div>
 
-    <script>
-        const initialDemands = [
-            {client:"Moussavi Albane (@albane.mss)",artist:"JUL",dateEvent:"16 Mai 2026",places:"2",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-01",status:"new",notes:"Stade de France Jul fosse (ou pas)"},
-            {client:"Karim (@karimflb)",artist:"JUL",dateEvent:"",places:"4+",cat:"NC",source:"instagram",dateMsg:"2025-04-02",status:"new",notes:"jul"},
-            {client:"Sanchez Melanie (@melaniecataleya)",artist:"JUL",dateEvent:"",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-02",status:"new",notes:"Jul"},
-            {client:"Eve Elbaz (@eveelbazz)",artist:"JUL",dateEvent:"16 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-03",status:"new",notes:"jul stade de france 16 mai 2026"},
-            {client:"Ghe Aida (@aidaghe)",artist:"JUL",dateEvent:"",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-05",status:"new",notes:"Concert JUL"},
-            {client:"Le Mentec Louis (@louislemtc)",artist:"JUL",dateEvent:"15 Mai",places:"1",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-07",status:"new",notes:"Jul 15 mai stade de France en fosse"},
-            {client:"Eve Elbaz (@eveelbazz)",artist:"AYA NAKAMURA",dateEvent:"30/31 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-03",status:"new",notes:"aya stade de france 30/31 mai 2026"},
-            {client:"Rouilly Victor (@Victorrly)",artist:"DAVID GUETTA",dateEvent:"12 Juin",places:"2",cat:"FOSSE",source:"tiktok",dateMsg:"2025-04-04",status:"new",notes:"David guetta/12 juin/fosse"},
-            {client:"Dardoullier Noreen (@noreen.ddl)",artist:"BRUNO MARS",dateEvent:"",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-04",status:"new",notes:"bruno mars, n'importe quelle date, n'importe quelle categorie"},
-            {client:"Stanislas Sirven Vienot (@stanssv)",artist:"CIRCOLOCO",dateEvent:"",places:"1",cat:"NC",source:"instagram",dateMsg:"2025-04-05",status:"new",notes:"Circoloco"},
-            {client:"Laissar Chamoel (@Smail78)",artist:"BAD BUNNY",dateEvent:"Juillet (sam ou dim)",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-06",status:"new",notes:"Bad bunny juillet paris samedi ou dimanche"},
-            {client:"June Drai (@Juneida1207)",artist:"TAME IMPALA",dateEvent:"3 Mai",places:"2",cat:"CAT 1",source:"instagram",dateMsg:"2025-04-06",status:"new",notes:"Tame Impala 3 Mai Paris Accor arena categorie 1"},
-            {client:"Soriano Aure (@aure.srn)",artist:"BTS",dateEvent:"",places:"1",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-07",status:"new",notes:"BTS en fosse SDF"},
-            {client:"SALLAT Halima (@Haleema.st25)",artist:"BAD BUNNY",dateEvent:"",places:"1",cat:"NC",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Bad bunny"},
-            {client:"Scotti Emilie (@Emiliescotti92)",artist:"CELINE DION",dateEvent:"2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Celine Dion Paris 2026"},
-            {client:"Wojciechowski Kimberly (@Wojciekokiki)",artist:"CELINE DION",dateEvent:"Septembre",places:"4",cat:"NC",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Celine Dion / Paris / septembre / pas la fosse"},
-            {client:"Henocq Simon (@Nomis.18)",artist:"CELINE DION",dateEvent:"",places:"4",cat:"NC",source:"instagram",dateMsg:"2025-04-09",status:"new",notes:"Psg, Rolland Garros, Celine Dion"},
-            {client:"BRUN Isaure (@isaurebrn)",artist:"CELINE DION",dateEvent:"",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-09",status:"new",notes:"Celine Dion"},
-            {client:"Karim Assaf (@karimflb)",artist:"BAD BUNNY",dateEvent:"",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Badbunny"},
-            {client:"Henocq Simon (@Nomis.18)",artist:"CELINE DION",dateEvent:"",places:"4+",cat:"CAT 4",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Concert Celine Dion categorie 4"},
-            {client:"Choulet Ambre (@ambre272)",artist:"CELINE DION",dateEvent:"Sept/Oct",places:"2",cat:"PARTERRE DIAMANT / CAT 1",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Celine Dion, sept/oct, Paris La Defense Arena, parterre diamant ou categorie 1"},
-            {client:"Vidal Clothilde (@clothildevdl)",artist:"CELINE DION",dateEvent:"",places:"2",cat:"GRADIN CAT 4",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Celine Dion / concert arena / gradin categorie 4"},
-            {client:"Toulouse Paul (@paultls)",artist:"CELINE DION",dateEvent:"",places:"2",cat:"PARTERRE ASSIS CAT 1",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion parterre Assis categorie 1"},
-            {client:"Louis dit Champain Jules (@julesldcp)",artist:"CELINE DION",dateEvent:"",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion"},
-            {client:"Vidal Clothilde (@clothildevdl)",artist:"CELINE DION",dateEvent:"Toute date",places:"2",cat:"TOUTE CAT DISPO",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion / toute date / accor arena / toute categorie disponible"}
-        ];
-        // Load from localStorage or use initial data
-        let demands = JSON.parse(localStorage.getItem('lp2p_demands') || 'null');
-        if(!demands || demands.length === 0){
-            demands = initialDemands;
-            localStorage.setItem('lp2p_demands', JSON.stringify(demands));
-        }
-        let currentFilter = 'all';
-        let currentStatus = 'all';
-        let currentSearch = '';
-        let editIndex = -1;
+<script>
+// ===== DATA =====
+const INITIAL=[
+{client:"June Drai (@Juneida1207)",artist:"TAME IMPALA",dateEvent:"2026-05-03",dateDisp:"3 Mai 2026",places:"2",cat:"CAT 1",source:"instagram",dateMsg:"2025-04-06",status:"new",notes:"Tame Impala 3 Mai Accor Arena cat 1",lieu:"Accor Arena"},
+{client:"Le Mentec Louis (@louislemtc)",artist:"JUL",dateEvent:"2026-05-15",dateDisp:"15 Mai 2026",places:"1",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-07",status:"new",notes:"Jul 15 mai SDF en fosse",lieu:"Stade de France"},
+{client:"Moussavi Albane (@albane.mss)",artist:"JUL",dateEvent:"2026-05-16",dateDisp:"16 Mai 2026",places:"2",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-01",status:"new",notes:"SDF Jul fosse (ou pas)",lieu:"Stade de France"},
+{client:"Eve Elbaz (@eveelbazz)",artist:"JUL",dateEvent:"2026-05-16",dateDisp:"16 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-03",status:"new",notes:"Jul SDF 16 mai 2026",lieu:"Stade de France"},
+{client:"Karim (@karimflb)",artist:"JUL",dateEvent:"2026-05-15",dateDisp:"15/16 Mai 2026",places:"4+",cat:"NC",source:"instagram",dateMsg:"2025-04-02",status:"new",notes:"Jul",lieu:"Stade de France"},
+{client:"Sanchez Melanie (@melaniecataleya)",artist:"JUL",dateEvent:"2026-05-15",dateDisp:"15/16 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-02",status:"new",notes:"Jul",lieu:"Stade de France"},
+{client:"Ghe Aida (@aidaghe)",artist:"JUL",dateEvent:"2026-05-15",dateDisp:"15/16 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-05",status:"new",notes:"Concert JUL",lieu:"Stade de France"},
+{client:"Eve Elbaz (@eveelbazz)",artist:"AYA NAKAMURA",dateEvent:"2026-05-30",dateDisp:"30/31 Mai 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-03",status:"new",notes:"Aya SDF 30/31 mai",lieu:"Stade de France"},
+{client:"Rouilly Victor (@Victorrly)",artist:"DAVID GUETTA",dateEvent:"2026-06-12",dateDisp:"12 Juin 2026",places:"2",cat:"FOSSE",source:"tiktok",dateMsg:"2025-04-04",status:"new",notes:"David Guetta 12 juin fosse",lieu:"Stade de France"},
+{client:"Dardoullier Noreen (@noreen.ddl)",artist:"BRUNO MARS",dateEvent:"2026-06-18",dateDisp:"18/20/21 Juin 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-04",status:"new",notes:"Bruno Mars toute date toute cat",lieu:"Stade de France"},
+{client:"Laissar Chamoel (@Smail78)",artist:"BAD BUNNY",dateEvent:"2026-07-04",dateDisp:"4/5 Juil 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-06",status:"new",notes:"Bad Bunny juillet sam ou dim",lieu:"La Defense Arena"},
+{client:"SALLAT Halima (@Haleema.st25)",artist:"BAD BUNNY",dateEvent:"2026-07-04",dateDisp:"4/5 Juil 2026",places:"1",cat:"NC",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Bad Bunny",lieu:"La Defense Arena"},
+{client:"Karim Assaf (@karimflb)",artist:"BAD BUNNY",dateEvent:"2026-07-04",dateDisp:"4/5 Juil 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Bad Bunny",lieu:"La Defense Arena"},
+{client:"Scotti Emilie (@Emiliescotti92)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Celine Dion Paris 2026",lieu:"La Defense Arena"},
+{client:"Wojciechowski Kimberly (@Wojciekokiki)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Septembre 2026",places:"4",cat:"PAS FOSSE",source:"instagram",dateMsg:"2025-04-08",status:"new",notes:"Celine Dion sept pas la fosse",lieu:"La Defense Arena"},
+{client:"Henocq Simon (@Nomis.18)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"4",cat:"NC",source:"instagram",dateMsg:"2025-04-09",status:"new",notes:"PSG + Roland Garros + Celine Dion",lieu:"La Defense Arena"},
+{client:"BRUN Isaure (@isaurebrn)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-09",status:"new",notes:"Celine Dion",lieu:"La Defense Arena"},
+{client:"Henocq Simon (@Nomis.18)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"4+",cat:"CAT 4",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Celine Dion cat 4",lieu:"La Defense Arena"},
+{client:"Choulet Ambre (@ambre272)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept/Oct 2026",places:"2",cat:"DIAMANT / CAT 1",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Celine Dion parterre diamant ou cat 1",lieu:"La Defense Arena"},
+{client:"Vidal Clothilde (@clothildevdl)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"GRADIN CAT 4",source:"instagram",dateMsg:"2025-04-10",status:"new",notes:"Celine Dion gradin cat 4",lieu:"La Defense Arena"},
+{client:"Toulouse Paul (@paultls)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"PARTERRE CAT 1",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion parterre assis cat 1",lieu:"La Defense Arena"},
+{client:"Louis dit Champain Jules (@julesldcp)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Sept-Oct 2026",places:"2",cat:"NC",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion",lieu:"La Defense Arena"},
+{client:"Vidal Clothilde (@clothildevdl)",artist:"CELINE DION",dateEvent:"2026-09-12",dateDisp:"Toute date",places:"2",cat:"TOUTE DISPO",source:"instagram",dateMsg:"2025-04-11",status:"new",notes:"Celine Dion toute date toute cat",lieu:"La Defense Arena"},
+{client:"Stanislas Sirven Vienot (@stanssv)",artist:"CIRCOLOCO",dateEvent:"2026-12-31",dateDisp:"Date NC",places:"1",cat:"NC",source:"instagram",dateMsg:"2025-04-05",status:"new",notes:"Circoloco",lieu:"NC"},
+{client:"Soriano Aure (@aure.srn)",artist:"BTS",dateEvent:"2026-12-31",dateDisp:"Date NC",places:"1",cat:"FOSSE",source:"instagram",dateMsg:"2025-04-07",status:"new",notes:"BTS en fosse SDF",lieu:"Stade de France"}
+];
 
-        const artistColors = {
-            'JUL':'jul','SCH':'sch','NINHO':'ninho','PNL':'pnl',
-            'BOOBA':'booba','DAMSO':'damso','ORELSAN':'orelsan'
-        };
+let demands=JSON.parse(localStorage.getItem('lp2p_v2')||'[]');
+let cFilter='all',cStatus='all',cSearch='',editIdx=-1;
 
-        function getArtistClass(artist){
-            const upper = artist.toUpperCase();
-            return artistColors[upper] ? 'artist-'+artistColors[upper] : 'artist-other';
-        }
+// ===== ARTIST COLORS =====
+const AC={JUL:'jul',SCH:'sch',NINHO:'ninho',PNL:'pnl',BOOBA:'booba',DAMSO:'damso','CELINE DION':'celine','BAD BUNNY':'badbunny','DAVID GUETTA':'guetta','BRUNO MARS':'bruno','AYA NAKAMURA':'aya','TAME IMPALA':'tame'};
+const AVATAR_COLORS={JUL:'#ef4444',SCH:'#a855f7',NINHO:'#22c55e',PNL:'#3b82f6','CELINE DION':'#ec4899','BAD BUNNY':'#06b6d4','DAVID GUETTA':'#8b5cf6','BRUNO MARS':'#10b981','AYA NAKAMURA':'#f97316','TAME IMPALA':'#14b8a6'};
+function tagClass(a){return AC[a.toUpperCase()]?'tag-'+AC[a.toUpperCase()]:'tag-other'}
+function avatarBg(a){return AVATAR_COLORS[a.toUpperCase()]||'#71717a'}
+function initials(n){const p=n.replace(/@\S+/g,'').replace(/[()]/g,'').trim().split(' ');return p.length>1?(p[0][0]+p[1][0]).toUpperCase():p[0].substring(0,2).toUpperCase()}
 
-        function getCatClass(cat){
-            if(cat.includes('1')) return 'cat-1';
-            if(cat.includes('2')) return 'cat-2';
-            if(cat.includes('3')) return 'cat-3';
-            if(cat.toUpperCase().includes('FOSSE')) return 'cat-fosse';
-            if(cat.toUpperCase().includes('VIP')) return 'cat-vip';
-            return 'cat-2';
-        }
+// ===== RENDER =====
+function render(){
+    const f=demands.filter(d=>{
+        const ma=cFilter==='all'||d.artist.toUpperCase()===cFilter.toUpperCase();
+        const ms=cStatus==='all'||d.status===cStatus;
+        const mc=cSearch===''||d.client.toLowerCase().includes(cSearch)||d.artist.toLowerCase().includes(cSearch)||((d.notes||'').toLowerCase().includes(cSearch));
+        return ma&&ms&&mc;
+    });
+    // Sort by event date
+    f.sort((a,b)=>(a.dateEvent||'2099').localeCompare(b.dateEvent||'2099'));
+    const tb=document.getElementById('tbody'),em=document.getElementById('empty');
+    if(!f.length){tb.innerHTML='';em.style.display='block';return}
+    em.style.display='none';
+    const SL={new:'Nouvelle',pending:'En cours',done:'Traitee',cancelled:'Annulee'};
+    const SC={new:'st-new',pending:'st-pending',done:'st-done',cancelled:'st-cancelled'};
+    const srcC={instagram:'src-ig',telegram:'src-tg',tiktok:'src-tk'};
+    const srcL={instagram:'IG',telegram:'TG',tiktok:'TK'};
+    tb.innerHTML=f.map(d=>{
+        const ri=demands.indexOf(d);
+        return`<tr ondblclick="editDemand(${ri})">
+<td><div class="client-cell"><div class="avatar" style="background:${avatarBg(d.artist)}">${initials(d.client)}</div><div><div class="client-name">${d.client.split('(')[0].trim()}</div><div class="client-ig">${d.client.match(/\(@?\S+\)/)?d.client.match(/\(@?\S+\)/)[0]:''}</div></div></div></td>
+<td><span class="tag ${tagClass(d.artist)}">${d.artist}</span></td>
+<td><div class="date-main">${d.dateDisp||d.dateEvent||'NC'}</div></td>
+<td><span class="lieu-text">${d.lieu||'NC'}</span></td>
+<td><span class="places-num">${d.places}</span></td>
+<td><span class="cat-tag">${d.cat||'NC'}</span></td>
+<td><span class="source-tag ${srcC[d.source]||'src-other'}">${srcL[d.source]||d.source||'?'}</span></td>
+<td><span class="date-sub">${d.dateMsg||''}</span></td>
+<td><span class="status-pill ${SC[d.status]}"><span class="st-dot"></span>${SL[d.status]}</span></td>
+<td><button class="act-btn" onclick="toggleSt(${ri})" title="Changer statut">&#10003;</button><button class="act-btn del" onclick="delDemand(${ri})" title="Supprimer">&#10005;</button></td>
+</tr>`}).join('');
+    updateStats();updateChips();updateBadges();
+}
 
-        function getInitials(name){
-            return name.replace('@','').substring(0,2).toUpperCase();
-        }
+function updateStats(){
+    document.getElementById('sTotal').textContent=demands.length;
+    document.getElementById('sWaiting').textContent=demands.filter(d=>d.status==='new'||d.status==='pending').length;
+    const tp=demands.reduce((s,d)=>{const n=parseInt(d.places)||0;return s+n},0);
+    document.getElementById('sPlaces').textContent=tp;
+    const arts=new Set(demands.map(d=>d.artist.toUpperCase()));
+    document.getElementById('sArtists').textContent=arts.size;
+}
+function updateChips(){
+    const a={};demands.forEach(d=>{const k=d.artist.toUpperCase();a[k]=(a[k]||0)+1});
+    document.getElementById('artistChips').innerHTML=Object.entries(a).sort((x,y)=>y[1]-x[1]).map(([n,c])=>`<button class="filter-chip ${cFilter.toUpperCase()===n?'active':''}" onclick="filterArtist('${n}',this)">${n}<span class="cnt">${c}</span></button>`).join('');
+}
+function updateBadges(){
+    document.getElementById('badgeAll').textContent=demands.length;
+    document.getElementById('badgeNew').textContent=demands.filter(d=>d.status==='new').length;
+    document.getElementById('badgePending').textContent=demands.filter(d=>d.status==='pending').length;
+    document.getElementById('badgeDone').textContent=demands.filter(d=>d.status==='done').length;
+    document.getElementById('badgeCancelled').textContent=demands.filter(d=>d.status==='cancelled').length;
+}
 
-        function renderTable(){
-            const tbody = document.getElementById('tableBody');
-            const empty = document.getElementById('emptyState');
-            let filtered = demands.filter(d => {
-                const matchArtist = currentFilter === 'all' || d.artist.toUpperCase() === currentFilter.toUpperCase();
-                const matchStatus = currentStatus === 'all' || d.status === currentStatus;
-                const matchSearch = currentSearch === '' || d.client.toLowerCase().includes(currentSearch.toLowerCase()) || d.artist.toLowerCase().includes(currentSearch.toLowerCase());
-                return matchArtist && matchStatus && matchSearch;
+// ===== FILTERS =====
+function filterArtist(a,el){cFilter=a;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));if(el)el.classList.add('active');render()}
+function filterStatus(s,el){cStatus=s;document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));if(el)el.classList.add('active');render()}
+function searchClient(v){cSearch=v.toLowerCase();render()}
+function doSort(k){demands.sort((a,b)=>{if(k==='dateEvent')return(a.dateEvent||'2099').localeCompare(b.dateEvent||'2099');return(a[k]||'').localeCompare(b[k]||'')});save();render()}
+
+// ===== ACTIONS =====
+function toggleSt(i){const o=['new','pending','done','cancelled'];const c=o.indexOf(demands[i].status);demands[i].status=o[(c+1)%o.length];save();render()}
+function delDemand(i){if(confirm('Supprimer ?')){demands.splice(i,1);save();render()}}
+function save(){localStorage.setItem('lp2p_v2',JSON.stringify(demands))}
+
+// ===== MODAL =====
+function openModal(){editIdx=-1;document.getElementById('mTitle').textContent='Nouvelle demande';['fClient','fArtist','fDateEvent','fLieu','fPlaces','fCat','fNotes'].forEach(id=>document.getElementById(id).value='');document.getElementById('fSource').value='instagram';document.getElementById('fStatus').value='new';document.getElementById('modal').classList.add('open')}
+function editDemand(i){editIdx=i;const d=demands[i];document.getElementById('mTitle').textContent='Modifier';document.getElementById('fClient').value=d.client;document.getElementById('fArtist').value=d.artist;document.getElementById('fDateEvent').value=d.dateDisp||d.dateEvent||'';document.getElementById('fLieu').value=d.lieu||'';document.getElementById('fPlaces').value=d.places;document.getElementById('fCat').value=d.cat||'';document.getElementById('fSource').value=d.source||'instagram';document.getElementById('fStatus').value=d.status;document.getElementById('fNotes').value=d.notes||'';document.getElementById('modal').classList.add('open')}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function saveDemand(){const d={client:document.getElementById('fClient').value,artist:document.getElementById('fArtist').value.toUpperCase(),dateEvent:'',dateDisp:document.getElementById('fDateEvent').value,places:document.getElementById('fPlaces').value,cat:document.getElementById('fCat').value,source:document.getElementById('fSource').value,dateMsg:new Date().toISOString().split('T')[0],status:document.getElementById('fStatus').value,notes:document.getElementById('fNotes').value,lieu:document.getElementById('fLieu').value,manual:true};if(!d.client||!d.artist)return alert('Client et Artiste requis');if(editIdx>=0)demands[editIdx]=Object.assign(demands[editIdx],d);else demands.push(d);save();closeModal();render()}
+
+// ===== GOOGLE SHEETS SYNC =====
+const SHEET_ID='1Id3KCN3_EVGvr04LJiAxks2yGTB1wOgNUfuD_M5pnK8';
+const SHEET_URL='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/export?format=csv&cachebust='+Date.now();
+let lastSheetCount=parseInt(localStorage.getItem('lp2p_sheetCount')||'0');
+
+async function syncTelegram(){
+    try{
+        const r=await fetch('https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&t='+Date.now());
+        const csv=await r.text();
+        const rows=csv.split('\n').slice(1).filter(r=>r.trim()&&r!==',');
+        const parsed=[];
+        rows.forEach(row=>{
+            // Parse CSV row (handle commas and quotes)
+            const cols=[];let cur='',inQ=false;
+            for(let i=0;i<row.length;i++){
+                const c=row[i];
+                if(c==='"'){inQ=!inQ}
+                else if(c===','&&!inQ){cols.push(cur.replace(/^"|"$/g,'').trim());cur=''}
+                else{cur+=c}
+            }
+            cols.push(cur.replace(/^"|"$/g,'').trim());
+            const nom=cols[0]||'';
+            const ig=cols[1]||'';
+            const ev=cols[2]||'';
+            const pl=cols[3]||'';
+            const src=cols[4]||'';
+            const date=cols[5]||'';
+            if(!nom||nom==='—'||nom==='test'||nom==='Test') return;
+            // Detect artist
+            const ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','CÉLINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','GIMS','JOSMAN','THEODORA','ROMY','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK'];
+            const evUp=(ev||'').toUpperCase();
+            let artist='';
+            for(const a of ARTISTS){if(evUp.includes(a)){artist=a;break}}
+            if(artist==='BADBUNNY')artist='BAD BUNNY';
+            if(artist==='CÉLINE DION')artist='CELINE DION';
+            if(artist==='AYA'&&!evUp.includes('NAKAMURA'))artist='AYA NAKAMURA';
+            if(!artist) artist=(ev||'').split('/')[0].split(' ').slice(0,3).join(' ').toUpperCase().trim();
+            // Category
+            let cat='NC';
+            if(/fosse|parterre debout/i.test(ev))cat='FOSSE';
+            if(/fosse or/i.test(ev))cat='FOSSE OR';
+            if(/vip|diamant|carr[eé] or/i.test(ev))cat='VIP';
+            if(/carr[eé] or/i.test(ev))cat='CARRE OR';
+            if(/cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='CAT '+m[1]}
+            if(/cat\s*(\d)/i.test(ev)){const m=ev.match(/cat\s*(\d)/i);cat='CAT '+m[1]}
+            // Source
+            let source='instagram';
+            if(src){const sl=src.toLowerCase();if(sl.includes('tiktok'))source='tiktok';else if(sl.includes('ami'))source='recommandation'}
+            // Date
+            const dateMsg=date?date.split('T')[0]:'';
+            parsed.push({
+                client:(nom||'')+(ig&&ig!=='—'?' ('+ig+')':''),
+                artist:artist||'NC',
+                dateEvent:'',
+                dateDisp:ev||'',
+                places:pl||'1',
+                cat,
+                source,
+                dateMsg,
+                status:'new',
+                notes:ev||'',
+                lieu:'',
+                sheetId:nom+ig+date
             });
-
-            if(filtered.length === 0){
-                tbody.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
-            empty.style.display = 'none';
-
-            tbody.innerHTML = filtered.map((d,i) => {
-                const realIndex = demands.indexOf(d);
-                const statusLabels = {new:'Nouvelle',pending:'En cours',done:'Traitee',cancelled:'Annulee'};
-                return `<tr ondblclick="editDemand(${realIndex})">
-                    <td><div class="client-cell"><div class="client-avatar">${getInitials(d.client)}</div><div><div class="client-name">${d.client}</div></div></div></td>
-                    <td><span class="artist-tag ${getArtistClass(d.artist)}">${d.artist.toUpperCase()}</span></td>
-                    <td><span class="date-event">${d.dateEvent}</span></td>
-                    <td><span class="places-badge">${d.places}</span></td>
-                    <td><span class="cat-badge ${getCatClass(d.cat)}">${d.cat}</span></td>
-                    <td><span class="source-badge ${d.source==='instagram'?'source-ig':'source-tg'}">${d.source==='instagram'?'IG':'TG'}</span></td>
-                    <td><span class="date-msg">${d.dateMsg}</span></td>
-                    <td><span class="status status-${d.status}"><span class="status-dot"></span>${statusLabels[d.status]}</span></td>
-                    <td>
-                        <button class="action-btn" onclick="toggleStatus(${realIndex})" title="Changer statut">&#10003;</button>
-                        <button class="action-btn delete" onclick="deleteDemand(${realIndex})" title="Supprimer">&#10005;</button>
-                    </td>
-                </tr>`;
-            }).join('');
-
-            // Update counts
-            document.getElementById('totalCount').textContent = demands.length;
-            document.getElementById('pendingCount').textContent = demands.filter(d=>d.status==='new'||d.status==='pending').length;
-
-            // Update artist filters
-            renderArtistFilters();
+        });
+        // Check for new entries
+        if(parsed.length>lastSheetCount&&lastSheetCount>0){
+            const newCount=parsed.length-lastSheetCount;
+            showToast(newCount+' nouvelle'+(newCount>1?'s':'')+' demande'+(newCount>1?'s':''),'via Tally');
         }
+        lastSheetCount=parsed.length;
+        localStorage.setItem('lp2p_sheetCount',lastSheetCount+'');
+        // Merge: keep manual demands + replace sheet demands
+        const manualDemands=demands.filter(d=>d.manual);
+        demands=[...parsed.map(d=>({...d,manual:false})),...manualDemands];
+        save();render();
+        updateSyncUI(0);
+    }catch(e){
+        console.error('Sheet sync error',e);
+        document.getElementById('syncDot').className='sync-dot off';
+        document.getElementById('syncLabel').textContent='Erreur sync';
+    }
+}
+function parseTG(t,ts){
+    if(!t.includes('Nom'))return null;
+    const nom=(t.match(/Nom\s*:\s*(.+)/i)||[])[1];
+    if(!nom||nom.trim()==='—')return null;
+    const ig=(t.match(/Instagram\s*:\s*(@?\S+)/i)||[])[1];
+    const ev=(t.match(/[EÉé]v[eéè]nement\s*:\s*(.+)/i)||[])[1];
+    const pl=(t.match(/Places?\s*:\s*(\S+)/i)||[])[1];
+    const src=(t.match(/Source\s*:\s*(.+)/i)||[])[1];
+    if(!ev||ev.trim()==='—')return null;
+    let artist=ev||'';
+    const ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','CÉLINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','CENTRAL CEE','BURNA BOY','RAMMSTEIN','COLDPLAY','ED SHEERAN','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','GIMS','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK','FREEZE CORLEONE','VALD','HEUSS','LACRIM','MAES','NAPS','SOOLKING','GAMBI','KOBA LAD'];
+    const up=ev.toUpperCase();
+    let found='';for(const a of ARTISTS){if(up.includes(a)){found=a;break}}
+    if(found==='CÉLINE DION')found='CELINE DION';if(found==='BADBUNNY')found='BAD BUNNY';if(found==='AYA'&&!found.includes('NAKAMURA'))found='AYA NAKAMURA';
+    let cat='NC';
+    if(/fosse|parterre debout/i.test(ev))cat='FOSSE';
+    if(/vip|diamant|carr[eé] or/i.test(ev))cat='VIP';
+    if(/cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='CAT '+m[1]}
+    if(/parterre.*assis.*cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='PARTERRE CAT '+m[1]}
+    if(/gradin.*cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='GRADIN CAT '+m[1]}
+    let srcType='instagram';
+    if(src){const sl=src.toLowerCase();if(sl.includes('tiktok'))srcType='tiktok';else if(sl.includes('telegram'))srcType='telegram';else if(sl.includes('ami')||sl.includes('autre'))srcType='autre'}
+    return{client:(nom||'').trim()+(ig&&ig!=='—'?' ('+ig.trim()+')':''),artist:found||ev.split('/')[0].trim().toUpperCase(),dateEvent:'',dateDisp:ev,places:pl||'1',cat,source:srcType,dateMsg:new Date(ts*1000).toISOString().split('T')[0],status:'new',notes:ev,lieu:''}
+}
+function updateSyncUI(n){
+    document.getElementById('syncDot').className='sync-dot live';
+    document.getElementById('syncLabel').textContent='Auto-sync actif';
+    document.getElementById('syncSub').textContent='Derniere sync: '+new Date().toLocaleTimeString('fr-FR');
+}
+function showToast(t,s){const to=document.getElementById('toast');document.getElementById('toastText').textContent=t;document.getElementById('toastSub').textContent=s||'';to.classList.add('show');setTimeout(()=>to.classList.remove('show'),4000)}
 
-        function renderArtistFilters(){
-            const artists = {};
-            demands.forEach(d => {
-                const a = d.artist.toUpperCase();
-                artists[a] = (artists[a]||0) + 1;
-            });
-            const container = document.getElementById('artistFilters');
-            container.innerHTML = Object.entries(artists).sort((a,b)=>b[1]-a[1]).map(([name,count]) =>
-                `<button class="filter-btn ${currentFilter.toUpperCase()===name?'active':''}" onclick="filterArtist('${name}',this)">${name}<span class="count">${count}</span></button>`
-            ).join('');
-        }
+// ===== EXPORT CSV =====
+function exportCSV(){
+    let csv='Client,Artiste,Date,Lieu,Places,Categorie,Source,Recu le,Statut,Notes\n';
+    demands.forEach(d=>{csv+=`"${d.client}","${d.artist}","${d.dateDisp||d.dateEvent||''}","${d.lieu||''}","${d.places}","${d.cat||''}","${d.source}","${d.dateMsg||''}","${d.status}","${(d.notes||'').replace(/"/g,"'")}"\n`});
+    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='demandes_lesplaces2paris.csv';a.click();URL.revokeObjectURL(url);
+}
 
-        function filterArtist(artist, el){
-            currentFilter = artist;
-            document.querySelectorAll('.filters .filter-btn').forEach(b=>b.classList.remove('active'));
-            el.classList.add('active');
-            renderTable();
-        }
-
-        function filterStatus(status, el){
-            currentStatus = status;
-            document.querySelectorAll('.status-tab').forEach(t=>t.classList.remove('active'));
-            el.classList.add('active');
-            renderTable();
-        }
-
-        function searchClient(val){
-            currentSearch = val;
-            renderTable();
-        }
-
-        function openModal(){
-            editIndex = -1;
-            document.getElementById('modalTitle').textContent = 'Nouvelle demande';
-            document.getElementById('inputClient').value = '';
-            document.getElementById('inputArtist').value = '';
-            document.getElementById('inputDateEvent').value = '';
-            document.getElementById('inputPlaces').value = '';
-            document.getElementById('inputCat').value = 'CAT 1';
-            document.getElementById('inputSource').value = 'instagram';
-            document.getElementById('inputDateMsg').value = new Date().toISOString().split('T')[0];
-            document.getElementById('inputStatus').value = 'new';
-            document.getElementById('inputNotes').value = '';
-            document.getElementById('modal').classList.add('active');
-        }
-
-        function editDemand(index){
-            editIndex = index;
-            const d = demands[index];
-            document.getElementById('modalTitle').textContent = 'Modifier la demande';
-            document.getElementById('inputClient').value = d.client;
-            document.getElementById('inputArtist').value = d.artist;
-            document.getElementById('inputDateEvent').value = d.dateEvent;
-            document.getElementById('inputPlaces').value = d.places;
-            document.getElementById('inputCat').value = d.cat;
-            document.getElementById('inputSource').value = d.source;
-            document.getElementById('inputDateMsg').value = d.dateMsg;
-            document.getElementById('inputStatus').value = d.status;
-            document.getElementById('inputNotes').value = d.notes || '';
-            document.getElementById('modal').classList.add('active');
-        }
-
-        function closeModal(){
-            document.getElementById('modal').classList.remove('active');
-        }
-
-        function saveDemand(){
-            const d = {
-                client: document.getElementById('inputClient').value,
-                artist: document.getElementById('inputArtist').value,
-                dateEvent: document.getElementById('inputDateEvent').value,
-                places: document.getElementById('inputPlaces').value,
-                cat: document.getElementById('inputCat').value,
-                source: document.getElementById('inputSource').value,
-                dateMsg: document.getElementById('inputDateMsg').value,
-                status: document.getElementById('inputStatus').value,
-                notes: document.getElementById('inputNotes').value
-            };
-            if(!d.client || !d.artist) return alert('Client et Artiste sont obligatoires');
-            if(editIndex >= 0){
-                demands[editIndex] = d;
-            } else {
-                demands.push(d);
-            }
-            localStorage.setItem('lp2p_demands', JSON.stringify(demands));
-            closeModal();
-            renderTable();
-        }
-
-        function toggleStatus(index){
-            const order = ['new','pending','done','cancelled'];
-            const current = order.indexOf(demands[index].status);
-            demands[index].status = order[(current+1) % order.length];
-            localStorage.setItem('lp2p_demands', JSON.stringify(demands));
-            renderTable();
-        }
-
-        function deleteDemand(index){
-            if(confirm('Supprimer cette demande ?')){
-                demands.splice(index,1);
-                localStorage.setItem('lp2p_demands', JSON.stringify(demands));
-                renderTable();
-            }
-        }
-
-        function sortTable(key){
-            demands.sort((a,b) => {
-                if(key==='client') return a.client.localeCompare(b.client);
-                if(key==='artist') return a.artist.localeCompare(b.artist);
-                if(key==='dateEvent') return a.dateEvent.localeCompare(b.dateEvent);
-                if(key==='dateMsg') return a.dateMsg.localeCompare(b.dateMsg);
-                return 0;
-            });
-            localStorage.setItem('lp2p_demands', JSON.stringify(demands));
-            renderTable();
-        }
-
-        // TELEGRAM SYNC
-        const TG_TOKEN = '8588915880:AAH0EYkEJcElZrqpt2843e8QC9xawLE7lBU';
-        const TG_API = 'https://api.telegram.org/bot' + TG_TOKEN;
-        let lastUpdateId = parseInt(localStorage.getItem('lp2p_lastUpdate') || '0');
-
-        async function syncTelegram(){
-            const btn = document.getElementById('syncBtn');
-            btn.innerHTML = '&#8987; Syncing...';
-            btn.style.opacity = '.6';
-            try {
-                const url = TG_API + '/getUpdates?offset=' + (lastUpdateId + 1) + '&limit=100';
-                const res = await fetch(url);
-                const data = await res.json();
-                if(!data.ok || !data.result.length){
-                    btn.innerHTML = '&#10003; A jour';
-                    btn.style.color = '#2ecc71';
-                    setTimeout(()=>{btn.innerHTML='&#9889; Sync Telegram';btn.style.color='#0088cc';btn.style.opacity='1'},2000);
-                    return;
-                }
-                let newCount = 0;
-                data.result.forEach(update => {
-                    lastUpdateId = update.update_id;
-                    const msg = update.message || update.channel_post;
-                    if(!msg || !msg.text) return;
-                    const parsed = parseMessage(msg.text, msg.date);
-                    if(parsed){
-                        // Check if already exists
-                        const exists = demands.some(d => d.telegramId === update.update_id);
-                        if(!exists){
-                            parsed.telegramId = update.update_id;
-                            demands.push(parsed);
-                            newCount++;
-                        }
-                    }
-                });
-                localStorage.setItem('lp2p_lastUpdate', lastUpdateId.toString());
-                localStorage.setItem('lp2p_demands', JSON.stringify(demands));
-                renderTable();
-                btn.innerHTML = '&#10003; +' + newCount + ' demandes';
-                btn.style.color = '#2ecc71';
-                setTimeout(()=>{btn.innerHTML='&#9889; Sync Telegram';btn.style.color='#0088cc';btn.style.opacity='1'},3000);
-            } catch(err){
-                btn.innerHTML = '&#10007; Erreur';
-                btn.style.color = '#e74c3c';
-                console.error(err);
-                setTimeout(()=>{btn.innerHTML='&#9889; Sync Telegram';btn.style.color='#0088cc';btn.style.opacity='1'},3000);
-            }
-        }
-
-        function parseMessage(text, timestamp){
-            // Skip non-demand messages
-            if(!text.includes('Nom') && !text.includes('nom')) return null;
-            if(text.length < 20) return null;
-
-            let d = {
-                client: '',
-                instagram: '',
-                artist: '',
-                dateEvent: '',
-                places: '1',
-                cat: 'NC',
-                source: 'instagram',
-                dateMsg: new Date(timestamp * 1000).toISOString().split('T')[0],
-                status: 'new',
-                notes: ''
-            };
-
-            // Extract Nom
-            const nomMatch = text.match(/Nom\s*:\s*(.+)/i);
-            if(nomMatch) d.client = nomMatch[1].trim();
-
-            // Extract Instagram
-            const igMatch = text.match(/Instagram\s*:\s*@?(\S+)/i);
-            if(igMatch) d.instagram = '@' + igMatch[1].replace('@','').trim();
-            if(d.instagram && !d.client) d.client = d.instagram;
-            if(d.instagram) d.client = d.client + ' (' + d.instagram + ')';
-
-            // Extract Evenement (contains artist + details)
-            const eventMatch = text.match(/[EÉé]v[eéè]nement\s*:\s*(.+)/i);
-            let eventText = '';
-            if(eventMatch) eventText = eventMatch[1].trim();
-
-            // Known artists
-            const artists = ['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','NEKFEU','GAZO','ALONZO','SOPRANO','TAYC','DADJU','GIMS','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK','FREEZE CORLEONE','RUSS','DRAKE','TRAVIS SCOTT','CENTRAL CEE','BURNA BOY','KAARIS','CELINE DION','CÉLINE DION','ED SHEERAN','COLDPLAY','THE WEEKND','BEYONCE','BEYONCÉ','RAMMSTEIN','METALLICA','INDOCHINE','STROMAE','KENDRICK LAMAR','EMINEM','STING','ROGER WATERS','DEPECHE MODE','MUSE','RED HOT','IMAGINE DRAGONS','DAFT PUNK','DAVID GUETTA','MARTIN GARRIX','ANGELE','ANGÈLE','VALD','HEUSS','LACRIM','MAES','RK','KOBA LAD','TIMAL','GAMBI','NAPS','SOOLKING'];
-            const searchText = (eventText + ' ' + text).toUpperCase();
-
-            for(const a of artists){
-                if(searchText.includes(a)){
-                    d.artist = a;
-                    break;
-                }
-            }
-
-            // If no known artist, use event text before "/" or first words
-            if(!d.artist && eventText){
-                const parts = eventText.split('/');
-                d.artist = parts[0].trim().replace(/parterre|assis|debout|cat[ée]gorie\s*\d/gi,'').trim();
-            }
-
-            // Extract details from event text (category, location, date)
-            if(eventText){
-                d.notes = eventText;
-                // Category detection
-                if(/assis/i.test(eventText)) d.cat = 'ASSIS';
-                if(/debout|fosse|parterre/i.test(eventText)) d.cat = 'FOSSE';
-                if(/vip|carré or|carre or/i.test(eventText)) d.cat = 'VIP';
-                if(/pelouse/i.test(eventText)) d.cat = 'PELOUSE';
-                const catNum = eventText.match(/cat[ée]?g?o?r?i?e?\s*(\d)/i);
-                if(catNum) d.cat = 'CAT ' + catNum[1];
-                // Assis catégorie combo
-                if(/assis\s*cat[ée]?g?o?r?i?e?\s*(\d)/i.test(eventText)){
-                    const m = eventText.match(/assis\s*cat[ée]?g?o?r?i?e?\s*(\d)/i);
-                    d.cat = 'ASSIS CAT ' + m[1];
-                }
-                if(/parterre\s*assis\s*cat[ée]?g?o?r?i?e?\s*(\d)/i.test(eventText)){
-                    const m = eventText.match(/parterre\s*assis\s*cat[ée]?g?o?r?i?e?\s*(\d)/i);
-                    d.cat = 'PARTERRE ASSIS CAT ' + m[1];
-                }
-
-                // Date in event
-                const dateMatch = eventText.match(/(\d{1,2})\s*(janv|f[eé]v|mars|avr|mai|juin|juil|ao[uû]t|sept|oct|nov|d[eé]c)\w*\.?\s*(\d{4})?/i);
-                if(dateMatch) d.dateEvent = dateMatch[0].trim();
-                const dateMatch2 = eventText.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-                if(!d.dateEvent && dateMatch2) d.dateEvent = dateMatch2[0];
-            }
-
-            // Extract Places
-            const placesMatch = text.match(/Places?\s*:\s*(\d+)/i);
-            if(placesMatch) d.places = placesMatch[1];
-
-            // Extract Source
-            const sourceMatch = text.match(/Source\s*:\s*(.+)/i);
-            if(sourceMatch){
-                const src = sourceMatch[1].trim().toLowerCase();
-                d.source = src.includes('instagram') ? 'instagram' : 'telegram';
-            }
-
-            if(!d.client || d.client.trim() === '') d.client = 'Inconnu';
-            if(!d.artist || d.artist.trim() === '') d.artist = 'A DETERMINER';
-
-            return d;
-        }
-
-        // Close modal on Escape
-        document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal() });
-        document.getElementById('modal').addEventListener('click', e => { if(e.target.id==='modal') closeModal() });
-
-        // AUTO-SYNC every 30 seconds
-        let autoSyncInterval = null;
-        function startAutoSync(){
-            syncTelegram();
-            autoSyncInterval = setInterval(syncTelegram, 30000);
-            document.getElementById('syncBtn').innerHTML = '&#9889; Auto-Sync ON';
-            document.getElementById('syncBtn').style.background = 'rgba(46,204,113,.15)';
-            document.getElementById('syncBtn').style.borderColor = 'rgba(46,204,113,.3)';
-            document.getElementById('syncBtn').style.color = '#2ecc71';
-        }
-        // Start auto-sync on page load
-        startAutoSync();
-
-        // Init
-        renderTable();
-    </script>
+// ===== INIT =====
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+render();
+// Auto-sync every 30s
+syncTelegram();
+setInterval(syncTelegram,30000);
+</script>
 </body>
 </html>
