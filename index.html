@@ -199,10 +199,6 @@
             </div>
         </div>
         <div class="sidebar-divider"></div>
-        <div class="sidebar-section">
-            <div class="sidebar-section-title">Raccourcis</div>
-            <div class="sidebar-item" onclick="exportCSV()"><span>&#128190;</span> Exporter CSV</div>
-        </div>
         <div class="sync-status">
             <div class="sync-title">Tally Sync</div>
             <div class="sync-info"><span class="sync-dot live" id="syncDot"></span> <span id="syncLabel">Auto-sync actif</span></div>
@@ -219,7 +215,6 @@
                 <p id="topbarSub">Gerez toutes vos demandes de places</p>
             </div>
             <div class="topbar-right">
-                <button class="btn btn-ghost" onclick="exportCSV()">&#128190; Export</button>
                 <button class="btn btn-primary" onclick="openModal()">+ Nouvelle</button>
             </div>
         </div>
@@ -378,7 +373,8 @@ function searchClient(v){cSearch=v.toLowerCase();render()}
 function doSort(k){demands.sort((a,b)=>{if(k==='dateEvent')return(a.dateEvent||'2099').localeCompare(b.dateEvent||'2099');return(a[k]||'').localeCompare(b[k]||'')});save();render()}
 
 // ===== ACTIONS =====
-function toggleSt(i){const o=['new','pending','done','cancelled'];const c=o.indexOf(demands[i].status);demands[i].status=o[(c+1)%o.length];save();render()}
+function toggleSt(i){const o=['new','pending','done','cancelled'];const c=o.indexOf(demands[i].status);demands[i].status=o[(c+1)%o.length];saveStatus(demands[i]);save();render()}
+function saveStatus(d){if(!d.sheetId)return;const s=JSON.parse(localStorage.getItem('lp2p_statuses')||'{}');s[d.sheetId]=d.status;localStorage.setItem('lp2p_statuses',JSON.stringify(s))}
 function delDemand(i){if(confirm('Supprimer ?')){demands.splice(i,1);save();render()}}
 function save(){localStorage.setItem('lp2p_v2',JSON.stringify(demands))}
 
@@ -460,9 +456,15 @@ async function syncTelegram(){
         }
         lastSheetCount=parsed.length;
         localStorage.setItem('lp2p_sheetCount',lastSheetCount+'');
-        // Merge: keep manual demands + replace sheet demands
+        // Merge: keep statuses + manual demands
+        const savedStatuses=JSON.parse(localStorage.getItem('lp2p_statuses')||'{}');
         const manualDemands=demands.filter(d=>d.manual);
-        demands=[...parsed.map(d=>({...d,manual:false})),...manualDemands];
+        demands=[...parsed.map(d=>{
+            // Restore saved status if exists
+            if(savedStatuses[d.sheetId]){d.status=savedStatuses[d.sheetId]}
+            d.manual=false;
+            return d;
+        }),...manualDemands];
         save();render();
         updateSyncUI(0);
     }catch(e){
