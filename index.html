@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LesPlaces2Paris - Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <style>
         :root{
             --bg:#0a0a0a;--surface:#141414;--surface2:#1a1a1a;--surface3:#222222;
@@ -148,7 +149,18 @@
         .empty .em-icon{font-size:2.5rem;margin-bottom:12px;opacity:.5}
 
         /* VENDEUR/CODE in sales table */
+        .prix-achat{font-weight:700;color:var(--orange)}
+        .prix-vente{font-weight:700;color:var(--green)}
+        .benef-pos{font-weight:800;color:var(--green)}
+        .benef-neg{font-weight:800;color:var(--red)}
+        .benef-zero{font-weight:700;color:var(--text3)}
         .vendeur-tag{font-size:.72rem;padding:3px 10px;border-radius:6px;font-weight:600;background:rgba(59,130,246,.1);color:var(--blue);display:inline-block}
+        /* ANALYTICS */
+        .analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:0 30px 30px}
+        .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+        .chart-card h3{font-size:.85rem;font-weight:700;margin-bottom:16px;color:var(--text)}
+        .chart-card canvas{max-height:280px}
+        @media(max-width:900px){.analytics-grid{grid-template-columns:1fr}}
         .code-tag{font-family:'Courier New',monospace;font-size:.75rem;padding:4px 10px;border-radius:6px;font-weight:700;background:rgba(34,197,94,.1);color:var(--green);display:inline-block;letter-spacing:1px}
         .no-info{font-size:.72rem;color:var(--text3);font-style:italic}
         .edit-inline{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:6px;font-size:.75rem;font-family:'Inter',sans-serif;width:120px}
@@ -315,10 +327,10 @@
 
             <!-- STATS VENTES -->
             <div class="stats-row">
-                <div class="stat-card stat-green"><div class="stat-label">Places vendues</div><div class="stat-value" id="sSalesTotal">0</div><div class="stat-sub">total</div></div>
-                <div class="stat-card stat-cyan"><div class="stat-label">Nb places</div><div class="stat-value" id="sSalesPlaces">0</div><div class="stat-sub">vendues</div></div>
-                <div class="stat-card stat-blue"><div class="stat-label">Vendeurs</div><div class="stat-value" id="sSalesVendeurs">0</div><div class="stat-sub">differents</div></div>
-                <div class="stat-card stat-orange"><div class="stat-label">Avec code</div><div class="stat-value" id="sSalesWithCode">0</div><div class="stat-sub">places tracees</div></div>
+                <div class="stat-card stat-green"><div class="stat-label">Ventes</div><div class="stat-value" id="sSalesTotal">0</div><div class="stat-sub">total</div></div>
+                <div class="stat-card stat-orange"><div class="stat-label">Total achats</div><div class="stat-value" id="sSalesAchat">0</div><div class="stat-sub">cout d'achat</div></div>
+                <div class="stat-card stat-cyan"><div class="stat-label">Total ventes</div><div class="stat-value" id="sSalesVente">0</div><div class="stat-sub">prix de vente</div></div>
+                <div class="stat-card stat-green"><div class="stat-label">Benefice total</div><div class="stat-value" id="sSalesBenef">0</div><div class="stat-sub">marge nette</div></div>
             </div>
 
             <!-- FILTERS VENTES -->
@@ -336,16 +348,25 @@
                         <th>Artiste</th>
                         <th>Evenement</th>
                         <th>Places</th>
-                        <th>Categorie</th>
+                        <th>Achat</th>
+                        <th>Vente</th>
+                        <th>Benef</th>
                         <th>Vendeur</th>
-                        <th>Code Places</th>
-                        <th>Date vente</th>
-                        <th>Notes</th>
+                        <th>Code</th>
+                        <th>Date</th>
                         <th>Actions</th>
                     </tr></thead>
                     <tbody id="tbodySales"></tbody>
                 </table>
                 <div class="empty" id="emptySales" style="display:none"><div class="em-icon">&#127915;</div><p>Aucune vente enregistree</p><p style="font-size:.8rem;margin-top:8px;color:var(--text3)">Marquez une demande comme vendue ou ajoutez une vente manuellement</p></div>
+            </div>
+
+            <!-- ANALYTICS / DIAGRAMMES -->
+            <div class="analytics-grid" id="analyticsGrid" style="display:none">
+                <div class="chart-card"><h3>Evolution des benefices par vente</h3><canvas id="chartBenefEvol"></canvas></div>
+                <div class="chart-card"><h3>Benefice cumule</h3><canvas id="chartBenefCumul"></canvas></div>
+                <div class="chart-card"><h3>Repartition par artiste (ventes)</h3><canvas id="chartArtistPie"></canvas></div>
+                <div class="chart-card"><h3>Achat vs Vente par artiste</h3><canvas id="chartArtistBar"></canvas></div>
             </div>
         </div>
     </main>
@@ -373,6 +394,7 @@
         <div class="m-row"><div class="m-field"><label>Evenement / Date</label><input id="smEvent" placeholder="16 Mai 2026 - Stade de France"></div><div class="m-field"><label>Nb Places</label><input id="smPlaces" type="text" placeholder="2"></div></div>
         <div class="m-row"><div class="m-field"><label>Categorie</label><input id="smCat" placeholder="FOSSE, CAT 1, VIP..."></div></div>
         <div class="sidebar-divider" style="margin:16px 0"></div>
+        <div class="m-row"><div class="m-field"><label>&#128176; Cout d'achat (total)</label><input id="smPrixAchat" type="number" step="0.01" placeholder="0.00"></div><div class="m-field"><label>&#128178; Prix de vente (total)</label><input id="smPrixVente" type="number" step="0.01" placeholder="0.00"></div></div>
         <div class="m-row"><div class="m-field"><label>&#128100; Vendeur</label><input id="smVendeur" placeholder="Nom du vendeur / fournisseur"></div></div>
         <div class="m-row"><div class="m-field"><label>&#128273; Code Places / Reference</label><input id="smCode" placeholder="Code billet, ref commande, lien..."></div></div>
         <div class="m-row"><div class="m-field"><label>Notes vente</label><textarea id="smNotes" placeholder="Details sur la vente, prix, remarques..."></textarea></div></div>
@@ -512,16 +534,21 @@ function renderSales(){
     em.style.display='none';
     tb.innerHTML=f.map(s=>{
         const ri=sales.indexOf(s);
+        const pa=parseFloat(s.prixAchat)||0;
+        const pv=parseFloat(s.prixVente)||0;
+        const bf=pv-pa;
+        const bfClass=bf>0?'benef-pos':bf<0?'benef-neg':'benef-zero';
         return`<tr ondblclick="editSale(${ri})">
 <td><div class="client-cell"><div class="avatar" style="background:${avatarBg(s.artist)}">${initials(s.client)}</div><div><div class="client-name">${esc(s.client.split('(')[0].trim())}</div><div class="client-ig">${esc(s.client.match(/\(@?\S+\)/)?s.client.match(/\(@?\S+\)/)[0]:'')}</div></div></div></td>
 <td><span class="tag ${tagClass(s.artist)}">${esc(s.artist)}</span></td>
 <td><div class="date-main">${esc(s.dateDisp||s.dateEvent||'NC')}</div><div class="lieu-text">${esc(s.lieu||'')}</div></td>
 <td><span class="places-num">${esc(s.places)}</span></td>
-<td><span class="cat-tag">${esc(s.cat||'NC')}</span></td>
-<td>${s.vendeur?'<span class="vendeur-tag">'+esc(s.vendeur)+'</span>':'<span class="no-info">Non renseigne</span>'}</td>
-<td>${s.codePlaces?'<span class="code-tag">'+esc(s.codePlaces)+'</span>':'<span class="no-info">Pas de code</span>'}</td>
+<td>${pa?'<span class="prix-achat">'+pa.toFixed(0)+'&euro;</span>':'<span class="no-info">-</span>'}</td>
+<td>${pv?'<span class="prix-vente">'+pv.toFixed(0)+'&euro;</span>':'<span class="no-info">-</span>'}</td>
+<td><span class="${bfClass}">${(pa||pv)?(bf>0?'+':'')+bf.toFixed(0)+'&euro;':'-'}</span></td>
+<td>${s.vendeur?'<span class="vendeur-tag">'+esc(s.vendeur)+'</span>':'<span class="no-info">-</span>'}</td>
+<td>${s.codePlaces?'<span class="code-tag">'+esc(s.codePlaces)+'</span>':'<span class="no-info">-</span>'}</td>
 <td><span class="date-sub">${esc(s.dateSale||'')}</span></td>
-<td><span class="lieu-text">${esc(s.saleNotes||'')}</span></td>
 <td>
 <button class="act-btn" onclick="editSale(${ri})" title="Modifier">&#9998;</button>
 <button class="act-btn del" onclick="delSale(${ri})" title="Supprimer">&#10005;</button>
@@ -531,11 +558,42 @@ function renderSales(){
 }
 function updateSalesStats(){
     document.getElementById('sSalesTotal').textContent=sales.length;
-    const tp=sales.reduce((s,d)=>{const n=parseInt(d.places)||0;return s+n},0);
-    document.getElementById('sSalesPlaces').textContent=tp;
-    const v=new Set(sales.filter(s=>s.vendeur).map(s=>s.vendeur.toUpperCase()));
-    document.getElementById('sSalesVendeurs').textContent=v.size;
-    document.getElementById('sSalesWithCode').textContent=sales.filter(s=>s.codePlaces).length;
+    const ta=sales.reduce((s,d)=>s+(parseFloat(d.prixAchat)||0),0);
+    const tv=sales.reduce((s,d)=>s+(parseFloat(d.prixVente)||0),0);
+    const tb2=tv-ta;
+    document.getElementById('sSalesAchat').textContent=ta?ta.toFixed(0)+'\u20AC':'0';
+    document.getElementById('sSalesVente').textContent=tv?tv.toFixed(0)+'\u20AC':'0';
+    const benEl=document.getElementById('sSalesBenef');
+    benEl.textContent=(ta||tv)?(tb2>0?'+':'')+tb2.toFixed(0)+'\u20AC':'0';
+    benEl.style.color=tb2>0?'var(--green)':tb2<0?'var(--red)':'var(--text3)';
+    // Show analytics if there are sales
+    document.getElementById('analyticsGrid').style.display=sales.length?'grid':'none';
+    if(sales.length)renderCharts();
+}
+
+// ===== CHARTS =====
+let charts={};
+function destroyCharts(){Object.values(charts).forEach(c=>{if(c&&c.destroy)c.destroy()});charts={}}
+function renderCharts(){
+    destroyCharts();
+    const sorted=[...sales].sort((a,b)=>(a.dateSale||'').localeCompare(b.dateSale||''));
+    // 1. Benef par vente
+    const labels1=sorted.map((s,i)=>(s.artist||'').substring(0,8)+'#'+(i+1));
+    const benefs=sorted.map(s=>(parseFloat(s.prixVente)||0)-(parseFloat(s.prixAchat)||0));
+    const colors1=benefs.map(b=>b>=0?'rgba(34,197,94,.7)':'rgba(239,68,68,.7)');
+    charts.benef=new Chart(document.getElementById('chartBenefEvol'),{type:'bar',data:{labels:labels1,datasets:[{label:'Benefice',data:benefs,backgroundColor:colors1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'\u20AC',color:'#b0a0a0'},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#706060',font:{size:10}},grid:{display:false}}}}});
+    // 2. Benef cumule
+    let cumul=0;const cumulData=sorted.map(s=>{cumul+=(parseFloat(s.prixVente)||0)-(parseFloat(s.prixAchat)||0);return cumul});
+    charts.cumul=new Chart(document.getElementById('chartBenefCumul'),{type:'line',data:{labels:labels1,datasets:[{label:'Cumul',data:cumulData,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#22c55e'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+'\u20AC',color:'#b0a0a0'},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#706060',font:{size:10}},grid:{display:false}}}}});
+    // 3. Repartition par artiste (pie)
+    const artMap={};sales.forEach(s=>{const k=s.artist||'NC';artMap[k]=(artMap[k]||0)+1});
+    const artEntries=Object.entries(artMap).sort((a,b)=>b[1]-a[1]);
+    const pieColors=['#ef4444','#a855f7','#3b82f6','#22c55e','#f97316','#ec4899','#06b6d4','#8b5cf6','#10b981','#14b8a6','#fbbf24','#fb7185'];
+    charts.pie=new Chart(document.getElementById('chartArtistPie'),{type:'doughnut',data:{labels:artEntries.map(e=>e[0]),datasets:[{data:artEntries.map(e=>e[1]),backgroundColor:pieColors.slice(0,artEntries.length),borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'right',labels:{color:'#b0a0a0',font:{size:11}}}}}});
+    // 4. Achat vs Vente par artiste (bar)
+    const artBuy={},artSell={};sales.forEach(s=>{const k=s.artist||'NC';artBuy[k]=(artBuy[k]||0)+(parseFloat(s.prixAchat)||0);artSell[k]=(artSell[k]||0)+(parseFloat(s.prixVente)||0)});
+    const artKeys=Object.keys(artBuy).sort();
+    charts.bar=new Chart(document.getElementById('chartArtistBar'),{type:'bar',data:{labels:artKeys,datasets:[{label:'Achat',data:artKeys.map(k=>artBuy[k]||0),backgroundColor:'rgba(249,115,22,.6)',borderRadius:4},{label:'Vente',data:artKeys.map(k=>artSell[k]||0),backgroundColor:'rgba(34,197,94,.6)',borderRadius:4}]},options:{responsive:true,plugins:{legend:{labels:{color:'#b0a0a0'}}},scales:{y:{ticks:{callback:v=>v+'\u20AC',color:'#b0a0a0'},grid:{color:'rgba(255,255,255,.05)'}},x:{ticks:{color:'#706060'},grid:{display:false}}}}});
 }
 function updateSaleChips(){
     const a={};sales.forEach(s=>{const k=s.artist.toUpperCase();a[k]=(a[k]||0)+1});
@@ -567,6 +625,8 @@ function sellDemand(i){
     document.getElementById('smEvent').value=(d.dateDisp||d.dateEvent||'')+(d.lieu?' - '+d.lieu:'');
     document.getElementById('smPlaces').value=d.places;
     document.getElementById('smCat').value=d.cat||'';
+    document.getElementById('smPrixAchat').value='';
+    document.getElementById('smPrixVente').value='';
     document.getElementById('smVendeur').value='';
     document.getElementById('smCode').value='';
     document.getElementById('smNotes').value='';
@@ -592,13 +652,15 @@ function openSaleModal(idx){
         document.getElementById('smEvent').value=s.dateDisp||s.dateEvent||'';
         document.getElementById('smPlaces').value=s.places;
         document.getElementById('smCat').value=s.cat||'';
+        document.getElementById('smPrixAchat').value=s.prixAchat||'';
+        document.getElementById('smPrixVente').value=s.prixVente||'';
         document.getElementById('smVendeur').value=s.vendeur||'';
         document.getElementById('smCode').value=s.codePlaces||'';
         document.getElementById('smNotes').value=s.saleNotes||'';
     }else{
         document.getElementById('smTitle').textContent='Nouvelle vente';
         document.getElementById('smDemandInfo').innerHTML='';
-        ['smClient','smArtist','smEvent','smPlaces','smCat','smVendeur','smCode','smNotes'].forEach(id=>document.getElementById(id).value='');
+        ['smClient','smArtist','smEvent','smPlaces','smCat','smPrixAchat','smPrixVente','smVendeur','smCode','smNotes'].forEach(id=>document.getElementById(id).value='');
     }
     document.getElementById('saleModal').classList.add('open');
 }
@@ -612,6 +674,8 @@ function saveSale(){
         dateDisp:document.getElementById('smEvent').value,
         places:document.getElementById('smPlaces').value,
         cat:document.getElementById('smCat').value,
+        prixAchat:document.getElementById('smPrixAchat').value,
+        prixVente:document.getElementById('smPrixVente').value,
         vendeur:document.getElementById('smVendeur').value,
         codePlaces:document.getElementById('smCode').value,
         dateSale:new Date().toISOString().split('T')[0],
@@ -754,8 +818,11 @@ function exportCSV(){
     const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='demandes_lesplaces2paris.csv';a.click();URL.revokeObjectURL(url);
 }
 function exportSalesCSV(){
-    let csv='Client,Artiste,Evenement,Places,Categorie,Vendeur,Code Places,Date Vente,Notes\n';
-    sales.forEach(s=>{csv+=`"${s.client}","${s.artist}","${s.dateDisp||''}","${s.places}","${s.cat||''}","${s.vendeur||''}","${s.codePlaces||''}","${s.dateSale||''}","${(s.saleNotes||'').replace(/"/g,"'")}"\n`});
+    let csv='Client,Artiste,Evenement,Places,Prix Achat,Prix Vente,Benefice,Vendeur,Code Places,Date Vente,Notes\n';
+    sales.forEach(s=>{
+        const pa=parseFloat(s.prixAchat)||0;const pv=parseFloat(s.prixVente)||0;const bf=pv-pa;
+        csv+=`"${s.client}","${s.artist}","${s.dateDisp||''}","${s.places}","${pa}","${pv}","${bf}","${s.vendeur||''}","${s.codePlaces||''}","${s.dateSale||''}","${(s.saleNotes||'').replace(/"/g,"'")}"\n`;
+    });
     const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='ventes_lesplaces2paris.csv';a.click();URL.revokeObjectURL(url);
 }
 
