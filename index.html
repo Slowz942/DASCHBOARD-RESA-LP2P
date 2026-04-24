@@ -166,6 +166,34 @@
         .edit-inline{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:6px;font-size:.75rem;font-family:'Inter',sans-serif;width:120px}
         .edit-inline:focus{outline:none;border-color:var(--gold-border)}
 
+        /* SOURCING / MATCH */
+        .match-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;font-size:.72rem;font-weight:700;cursor:pointer;border:1px solid;transition:all .15s;font-family:'Inter',sans-serif;white-space:nowrap}
+        .mb-stock{background:rgba(34,197,94,.08);color:#4ade80;border-color:rgba(34,197,94,.3)}
+        .mb-stock:hover{background:rgba(34,197,94,.18);box-shadow:0 0 12px rgba(34,197,94,.3)}
+        .mb-none{background:var(--surface3);color:var(--text3);border-color:var(--border);cursor:default}
+        .mb-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+        .match-row{background:rgba(34,197,94,.025)}
+        .match-row td{border-bottom:1px solid rgba(34,197,94,.15) !important;padding:0 !important}
+        .match-panel{padding:12px 20px;display:flex;flex-direction:column;gap:8px}
+        .match-panel-head{font-size:.68rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--green);font-weight:700;margin-bottom:4px}
+        .match-item{display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:.8rem}
+        .match-item .mi-name{flex:1;min-width:0;color:var(--text);font-weight:500}
+        .match-item .mi-price{display:flex;gap:12px;align-items:center;font-size:.77rem}
+        .mi-achat{color:#fb923c;font-weight:700}
+        .mi-vente{color:#4ade80;font-weight:800}
+        .mi-benef{color:var(--text3);font-size:.72rem}
+        .mi-actions{display:flex;gap:6px}
+        .mi-btn{padding:5px 12px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface3);color:var(--text2);font-family:'Inter',sans-serif;transition:all .15s}
+        .mi-btn.primary{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none}
+        .mi-btn.primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(34,197,94,.35)}
+        .mi-btn:hover{background:var(--surface3);color:var(--text)}
+        .score-pill{font-size:.62rem;padding:2px 6px;border-radius:4px;background:var(--surface3);color:var(--text3);font-family:'Courier New',monospace;margin-right:4px}
+
+        /* INVENTORY SYNC BADGE */
+        .inv-sync{font-size:.68rem;color:var(--text3);margin-top:4px}
+        .inv-sync.ok{color:#4ade80}
+        .inv-sync.err{color:var(--red)}
+
         /* VIEWS */
         .view{display:none}
         .view.active{display:block}
@@ -257,7 +285,9 @@
             <div class="sync-title">Tally Sync</div>
             <div class="sync-info"><span class="sync-dot live" id="syncDot"></span> <span id="syncLabel">Auto-sync actif</span></div>
             <div class="sync-sub" id="syncSub">Derniere sync: --</div>
-            <button class="btn-sync" onclick="syncTelegram()" id="syncBtn">Sync Google Sheet</button>
+            <div class="inv-sync" id="invSyncLabel">Inventaire: --</div>
+            <button class="btn-sync" onclick="syncTelegram();syncInventory()" id="syncBtn">Sync tout</button>
+            <button class="btn-sync" onclick="configureWebhook()" style="margin-top:6px">Webhook Telegram</button>
         </div>
     </aside>
 
@@ -303,6 +333,7 @@
                         <th>Categorie</th>
                         <th>Source</th>
                         <th onclick="doSort('dateMsg')">Recu le</th>
+                        <th>Stock</th>
                         <th>Statut</th>
                         <th>Actions</th>
                     </tr></thead>
@@ -437,10 +468,186 @@ const INITIAL=[
 
 let demands=JSON.parse(localStorage.getItem('lp2p_v2')||'[]');
 let sales=JSON.parse(localStorage.getItem('lp2p_sales')||'[]');
+let inventory=[]; // parsed rows from the inventory sheet
+let expandedDemand=-1; // which demand row has its sourcing panel open
 let cFilter='all',cStatus='all',cSearch='',editIdx=-1;
 let saleFilter='all',saleSearch='',editSaleIdx=-1;
 let currentView='demands';
 let fromDemandIdx=-1; // when creating sale from a demand
+
+// ===== INVENTORY / SOURCING =====
+const INVENTORY_SHEET_ID='1jSQNoni7qW6ShnRw3hi_g_fF90qn5YZ3koRaL1gYTLE';
+const KNOWN_ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','BRUNOS MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','GIMS','JOSMAN','THEODORA','ROMY','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK','THE WEEKND','WEEKND','LAMANO','LA MANO','L2B','LUIDJI','FREEZE CORLEONE','LOMEPAL','ORELSAN','FEDER','KAARIS','LACRIM','KALASH CRIMINEL'];
+const FR_MONTHS={janvier:'01',fevrier:'02','février':'02',mars:'03',avril:'04',mai:'05',juin:'06',juillet:'07',aout:'08','août':'08',septembre:'09',octobre:'10',novembre:'11',decembre:'12','décembre':'12'};
+
+function normalizeArtist(a){
+    if(!a) return '';
+    let up=a.toUpperCase().trim();
+    if(up==='BADBUNNY') return 'BAD BUNNY';
+    if(up==='BRUNOS MARS') return 'BRUNO MARS';
+    if(up==='WEEKND') return 'THE WEEKND';
+    if(up==='LA MANO') return 'LAMANO';
+    return up;
+}
+
+function parseInvRow(nom, achat, revente, benef){
+    const raw=(nom||'').replace(/\r/g,'').trim();
+    if(!raw) return null;
+    const oneLine=raw.replace(/\n/g,' ');
+    const up=oneLine.toUpperCase();
+
+    // Skip non-ticket items (clothing, pokemon, etc.)
+    const NON_TICKET=/\b(DOUDOUNE|JOTT|NEW BALANCE|COFFRET|POKEMON|EVOLUTION PRISMATIQUE)\b/;
+    if(NON_TICKET.test(up)) return null;
+
+    // Artist
+    let artist='';
+    for(const a of KNOWN_ARTISTS){
+        const re=new RegExp('\\b'+a.replace(/ /g,'\\s+')+'\\b');
+        if(re.test(up)){ artist=normalizeArtist(a); break; }
+    }
+
+    // Category
+    let cat='NC';
+    if(/\bFOSSES?\s+OR\b/.test(up)) cat='FOSSE OR';
+    else if(/\bFOSSES?\b/.test(up)) cat='FOSSE';
+    else if(/\bCAT\s*OR\b/.test(up)) cat='CAT OR';
+    else {
+        const cm=up.match(/\bCAT[EÉ]?G?O?R?I?E?\s*(\d)\b/) || up.match(/\bCAT\s*(\d)\b/);
+        if(cm) cat='CAT '+cm[1];
+        else if(/\bVIP\b|\bDIAMANT\b|\bCARR[EÉ]\s+OR\b/.test(up)) cat='VIP';
+        else if(/\bPARTERRE\b/.test(up)) cat='PARTERRE';
+        else if(/\bGRADIN\b/.test(up)) cat='GRADIN';
+        else if(/\bANNEX\b/.test(up)) cat='ANNEX';
+    }
+
+    // Quantity
+    let qty=1;
+    const qm1=up.match(/\bX\s*(\d+)/) || up.match(/^(\d+)\s*X\b/);
+    if(qm1) qty=parseInt(qm1[1])||1;
+    if(/\bDUO\b/.test(up) && qty<2) qty=2;
+    if(/\bSOLO\b/.test(up)) qty=1;
+
+    // Date (day + month in French)
+    let dateMonth=null, dateDay=null, dateLabel='';
+    const dm=oneLine.match(/\b(\d{1,2})\s+(janvier|f[eé]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[eé]cembre)\b/i);
+    if(dm){
+        dateDay=dm[1].padStart(2,'0');
+        const mk=dm[2].toLowerCase();
+        dateMonth=FR_MONTHS[mk]||null;
+        dateLabel=dm[1]+' '+dm[2];
+    } else {
+        // month-only (e.g. "JUILLET")
+        const mo=oneLine.match(/\b(janvier|f[eé]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[eé]cembre)\b/i);
+        if(mo){ dateMonth=FR_MONTHS[mo[1].toLowerCase()]||null; dateLabel=mo[1]; }
+    }
+
+    // Clean name (first line only, trimmed)
+    const cleanName=raw.split('\n')[0].trim();
+
+    const prixAchat=parseFloat((achat||'').toString().replace(',','.'))||0;
+    const prixVente=parseFloat((revente||'').toString().replace(',','.'))||0;
+    const benefVal=parseFloat((benef||'').toString().replace(',','.'))||(prixVente-prixAchat);
+
+    return {
+        raw, cleanName, artist, cat, qty,
+        dateMonth, dateDay, dateLabel,
+        prixAchat, prixVente, benef:benefVal,
+        available:true // TODO: colors/statut later
+    };
+}
+
+async function syncInventory(){
+    const el=document.getElementById('invSyncLabel');
+    try{
+        const r=await fetch('https://docs.google.com/spreadsheets/d/'+INVENTORY_SHEET_ID+'/gviz/tq?tqx=out:csv&t='+Date.now());
+        const csv=await r.text();
+        const clean=csv.replace(/^\uFEFF/,'');
+        // Re-use parseCSVRow but handle multi-line cells: gviz wraps multi-line in quotes; we need a full CSV parser
+        const rows=parseFullCSV(clean);
+        inventory=[];
+        rows.forEach(cols=>{
+            if(!cols.length) return;
+            const nom=cols[0]||'';
+            const low=nom.toLowerCase().trim();
+            if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
+            const it=parseInvRow(nom,cols[1],cols[2],cols[3]);
+            if(it) inventory.push(it);
+        });
+        if(el){ el.textContent='Inventaire: '+inventory.length+' items'; el.className='inv-sync ok'; }
+        render();
+    }catch(e){
+        console.error('Inventory sync error',e);
+        if(el){ el.textContent='Inventaire: erreur'; el.className='inv-sync err'; }
+    }
+}
+
+// Full CSV parser that handles quoted multi-line cells
+function parseFullCSV(text){
+    const rows=[];let cur='',row=[],inQ=false;
+    for(let i=0;i<text.length;i++){
+        const c=text[i];
+        if(c==='"'){
+            if(inQ&&text[i+1]==='"'){cur+='"';i++;}
+            else inQ=!inQ;
+        } else if(c===','&&!inQ){row.push(cur);cur='';}
+        else if(c==='\n'&&!inQ){row.push(cur);cur='';rows.push(row);row=[];}
+        else if(c==='\r'){/* skip */}
+        else cur+=c;
+    }
+    if(cur.length||row.length){row.push(cur);rows.push(row);}
+    return rows.map(r=>r.map(c=>c.trim()));
+}
+
+// Extract structured fields from a demand for matching
+function demandMeta(d){
+    const artist=normalizeArtist(d.artist||'');
+    const cat=(d.cat||'').toUpperCase().trim();
+    const catNC=!cat||cat==='NC';
+    const nbPlaces=parseInt((d.places||'1').toString().replace(/[^\d]/g,''))||1;
+    // Extract month/day from dateDisp or dateEvent
+    const s=(d.dateDisp||d.dateEvent||'');
+    let dateMonth=null,dateDay=null;
+    const dm=s.match(/\b(\d{1,2})\s+(janvier|f[eé]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[eé]cembre|jan|fev|fév|avr|jui|juil|aou|sep|oct|nov|dec|déc)/i);
+    if(dm){ dateDay=dm[1].padStart(2,'0'); const k=dm[2].toLowerCase(); dateMonth=FR_MONTHS[k]||FR_MONTHS[Object.keys(FR_MONTHS).find(x=>x.startsWith(k))||'']||null; }
+    else if(d.dateEvent){ const p=d.dateEvent.split('-'); if(p.length>=2){ dateMonth=p[1]; dateDay=p[2]||null; } }
+    return {artist,cat,catNC,nbPlaces,dateMonth,dateDay};
+}
+
+function findMatches(d){
+    if(!inventory.length) return [];
+    const m=demandMeta(d);
+    if(!m.artist||m.artist==='NC') return [];
+    const out=[];
+    inventory.forEach(it=>{
+        if(!it.available) return;
+        if(it.artist!==m.artist) return;
+        let score=10; // artist matched
+        // Category
+        if(it.cat===m.cat) score+=15;
+        else if(m.catNC||it.cat==='NC') score+=3;
+        else if(looseCatMatch(m.cat,it.cat)) score+=8;
+        else score-=3; // different cat but same artist — still keep
+        // Date
+        if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){
+            score+=6;
+            if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) score+=8;
+        }
+        // Has a buy price
+        if(!it.prixAchat) score-=2;
+        out.push({...it,score});
+    });
+    out.sort((a,b)=>b.score-a.score);
+    return out;
+}
+
+function looseCatMatch(a,b){
+    // "FOSSE" and "FOSSE OR" considered loosely compatible
+    const A=a||'',B=b||'';
+    if(A.includes('FOSSE')&&B.includes('FOSSE')) return true;
+    if(A.includes('CAT')&&B.includes('CAT')) return true;
+    return false;
+}
 
 // ===== ARTIST COLORS =====
 const AC={JUL:'jul',SCH:'sch',NINHO:'ninho',PNL:'pnl',BOOBA:'booba',DAMSO:'damso','CELINE DION':'celine','BAD BUNNY':'badbunny','DAVID GUETTA':'guetta','BRUNO MARS':'bruno','AYA NAKAMURA':'aya','TAME IMPALA':'tame'};
@@ -480,7 +687,11 @@ function render(){
     const srcL={instagram:'IG',telegram:'TG',tiktok:'TK'};
     tb.innerHTML=f.map(d=>{
         const ri=demands.indexOf(d);
-        return`<tr ondblclick="editDemand(${ri})">
+        const matches=findMatches(d);
+        const mCell=matches.length
+            ? `<span class="match-badge mb-stock" onclick="toggleMatches(${ri})" title="Cliquez pour voir"><span class="mb-dot"></span>${matches.length} en stock</span>`
+            : `<span class="match-badge mb-none" title="Aucun match en inventaire">— aucun —</span>`;
+        const rowHtml=`<tr ondblclick="editDemand(${ri})">
 <td><div class="client-cell"><div class="avatar" style="background:${avatarBg(d.artist)}">${initials(d.client)}</div><div><div class="client-name">${esc(d.client.split('(')[0].trim())}</div><div class="client-ig">${esc(d.client.match(/\(@?\S+\)/)?d.client.match(/\(@?\S+\)/)[0]:'')}</div></div></div></td>
 <td><span class="tag ${tagClass(d.artist)}">${esc(d.artist)}</span></td>
 <td><div class="date-main">${esc(d.dateDisp||d.dateEvent||'NC')}</div></td>
@@ -489,13 +700,37 @@ function render(){
 <td><span class="cat-tag">${esc(d.cat||'NC')}</span></td>
 <td><span class="source-tag ${srcC[d.source]||'src-other'}">${srcL[d.source]||esc(d.source)||'?'}</span></td>
 <td><span class="date-sub">${esc(d.dateMsg||'')}</span></td>
+<td>${mCell}</td>
 <td><span class="status-pill ${SC[d.status]}"><span class="st-dot"></span>${SL[d.status]}</span></td>
 <td>
 <button class="act-btn" onclick="toggleSt(${ri})" title="Changer statut">&#8635;</button>
 <button class="act-btn sell" onclick="sellDemand(${ri})" title="Marquer vendu">&#9745;</button>
 <button class="act-btn del" onclick="delDemand(${ri})" title="Supprimer">&#10005;</button>
 </td>
-</tr>`}).join('');
+</tr>`;
+        // expandable match-row under the demand
+        let expandHtml='';
+        if(expandedDemand===ri && matches.length){
+            const items=matches.map((m,mi)=>{
+                const benef=m.prixVente-m.prixAchat;
+                const benefPct=m.prixAchat?((benef/m.prixAchat)*100).toFixed(0):'';
+                return`<div class="match-item">
+<span class="score-pill">${m.score}</span>
+<div class="mi-name">${esc(m.cleanName)}</div>
+<div class="mi-price">
+${m.prixAchat?'<span class="mi-achat">Achat '+m.prixAchat.toFixed(0)+'€</span>':''}
+${m.prixVente?'<span class="mi-vente">Vente '+m.prixVente.toFixed(0)+'€</span>':''}
+${benef?'<span class="mi-benef">'+(benef>0?'+':'')+benef.toFixed(0)+'€ ('+benefPct+'%)</span>':''}
+</div>
+<div class="mi-actions">
+<button class="mi-btn primary" onclick="proposeMatch(${ri},${mi})">Proposer</button>
+<button class="mi-btn" onclick="customPropose(${ri},${mi})">Custom €</button>
+</div>
+</div>`;}).join('');
+            expandHtml=`<tr class="match-row"><td colspan="11"><div class="match-panel"><div class="match-panel-head">&#128200; ${matches.length} item(s) en stock pour ${esc(d.artist)}</div>${items}</div></td></tr>`;
+        }
+        return rowHtml+expandHtml;
+    }).join('');
     updateStats();updateChips();updateBadges();
 }
 
@@ -598,6 +833,104 @@ function renderCharts(){
 function updateSaleChips(){
     const a={};sales.forEach(s=>{const k=s.artist.toUpperCase();a[k]=(a[k]||0)+1});
     document.getElementById('saleArtistChips').innerHTML=Object.entries(a).sort((x,y)=>y[1]-x[1]).map(([n,c])=>`<button class="filter-chip ${saleFilter.toUpperCase()===n?'active':''}" onclick="filterSaleArtist('${esc(n)}',this)">${esc(n)}<span class="cnt">${c}</span></button>`).join('');
+}
+
+// ===== SOURCING ACTIONS =====
+function toggleMatches(ri){
+    expandedDemand=(expandedDemand===ri)?-1:ri;
+    render();
+}
+
+function buildProposalMessage(d,m,priceOverride){
+    const sellPrice=priceOverride!=null?priceOverride:m.prixVente;
+    const benef=sellPrice-m.prixAchat;
+    const name=(d.client||'').split('(')[0].trim();
+    const cat=m.cat&&m.cat!=='NC'?m.cat:(d.cat||'');
+    const dateLbl=d.dateDisp||d.dateEvent||m.dateLabel||'';
+    return {
+        clientMsg:`Salut ${name}! J'ai trouve pour ${d.artist}${dateLbl?' ('+dateLbl+')':''}${cat?' en '+cat:''}. Je te la propose a ${sellPrice}EUR. Ca t'interesse ?`,
+        internal:{
+            client:d.client,
+            artist:d.artist,
+            event:dateLbl,
+            category:cat,
+            places_requested:d.places,
+            item:m.cleanName,
+            buy_price:m.prixAchat,
+            proposed_price:sellPrice,
+            expected_profit:benef,
+            expected_profit_pct:m.prixAchat?((benef/m.prixAchat)*100).toFixed(1)+'%':'-',
+        }
+    };
+}
+
+async function proposeMatch(ri,mi){
+    const d=demands[ri];
+    const matches=findMatches(d);
+    const m=matches[mi];
+    if(!m) return;
+    const msg=buildProposalMessage(d,m);
+    await sendProposal(d,m,msg);
+}
+
+async function customPropose(ri,mi){
+    const d=demands[ri];
+    const matches=findMatches(d);
+    const m=matches[mi];
+    if(!m) return;
+    const input=prompt('Prix de vente personnalise (EUR):',m.prixVente);
+    if(input===null) return;
+    const price=parseFloat(input.replace(',','.'));
+    if(!price||price<=0){ alert('Prix invalide'); return; }
+    const msg=buildProposalMessage(d,m,price);
+    await sendProposal(d,m,msg);
+}
+
+async function sendProposal(d,m,msg){
+    const webhookUrl=localStorage.getItem('lp2p_webhook_url')||'';
+    // 1. Copy message to clipboard always (fallback + convenience)
+    try{
+        await navigator.clipboard.writeText(msg.clientMsg);
+    }catch(e){ console.warn('Clipboard copy failed',e); }
+    // 2. If webhook configured, POST to n8n for Telegram approval flow
+    if(webhookUrl){
+        try{
+            await fetch(webhookUrl,{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    event:'match_found',
+                    demand:{
+                        client:d.client,
+                        artist:d.artist,
+                        event:d.dateDisp||d.dateEvent,
+                        category:d.cat,
+                        places:d.places,
+                        source:d.source,
+                        notes:d.notes,
+                        sheetId:d.sheetId||null,
+                    },
+                    match:msg.internal,
+                    suggested_message:msg.clientMsg,
+                    ts:new Date().toISOString(),
+                }),
+            });
+            showToast('Notification Telegram envoyee','Message copie dans le presse-papier');
+        }catch(e){
+            console.error('Webhook failed',e);
+            showToast('Erreur webhook','Message copie dans le presse-papier');
+        }
+    } else {
+        showToast('Message copie','Configure un webhook pour Telegram auto');
+    }
+}
+
+function configureWebhook(){
+    const cur=localStorage.getItem('lp2p_webhook_url')||'';
+    const v=prompt('URL du webhook n8n pour les propositions (laisser vide pour desactiver):',cur);
+    if(v===null) return;
+    if(v.trim()){ localStorage.setItem('lp2p_webhook_url',v.trim()); showToast('Webhook enregistre','Propositions -> Telegram'); }
+    else { localStorage.removeItem('lp2p_webhook_url'); showToast('Webhook desactive','Propositions copiees localement'); }
 }
 
 // ===== FILTERS =====
@@ -827,10 +1160,12 @@ function exportSalesCSV(){
 }
 
 // ===== INIT =====
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeSaleModal()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeSaleModal();expandedDemand=-1;render()}});
 render();
 syncTelegram();
+syncInventory();
 setInterval(syncTelegram,30000);
+setInterval(syncInventory,60000);
 </script>
 </body>
 </html>
