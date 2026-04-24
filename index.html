@@ -180,8 +180,14 @@
         .match-item .mi-name{flex:1;min-width:0;color:var(--text);font-weight:500}
         .match-item .mi-price{display:flex;gap:12px;align-items:center;font-size:.77rem}
         .mi-achat{color:#fb923c;font-weight:700}
-        .mi-vente{color:#4ade80;font-weight:800}
+        .mi-vente{color:#4ade80;font-weight:700}
+        .mi-suggested{color:#fff;font-weight:800;background:linear-gradient(135deg,#22c55e,#16a34a);padding:3px 10px;border-radius:6px;font-size:.78rem}
+        .mi-suggested .mi-pct{opacity:.85;font-weight:600;font-size:.7rem}
         .mi-benef{color:var(--text3);font-size:.72rem}
+        .mi-flag{font-size:.66rem;color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:.5px}
+        .stock-pill{display:inline-block;font-size:.58rem;padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:1px;margin-right:8px;vertical-align:middle}
+        .stock-sold{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.35)}
+        .stock-in{background:rgba(220,38,38,.12);color:#f87171;border:1px solid rgba(220,38,38,.35)}
         .mi-actions{display:flex;gap:6px}
         .mi-btn{padding:5px 12px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface3);color:var(--text2);font-family:'Inter',sans-serif;transition:all .15s}
         .mi-btn.primary{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none}
@@ -287,6 +293,7 @@
             <div class="sync-sub" id="syncSub">Derniere sync: --</div>
             <div class="inv-sync" id="invSyncLabel">Inventaire: --</div>
             <button class="btn-sync" onclick="syncTelegram();syncInventory()" id="syncBtn">Sync tout</button>
+            <button class="btn-sync" onclick="configureAppsScript()" style="margin-top:6px">Apps Script (couleurs)</button>
             <button class="btn-sync" onclick="configureWebhook()" style="margin-top:6px">Webhook Telegram</button>
         </div>
     </aside>
@@ -557,24 +564,76 @@ function parseInvRow(nom, achat, revente, benef){
     };
 }
 
+// Classify a hex background color into a stock status.
+// Green  = sold (already gone), Red = in stock (available), other/white = unknown
+function classifyColor(hex){
+    if(!hex) return 'unknown';
+    const h=hex.toString().trim().toLowerCase();
+    if(!h||h==='#ffffff'||h==='#000000'||h==='transparent') return 'unknown';
+    const m=h.match(/^#?([0-9a-f]{6})$/);
+    if(!m) return 'unknown';
+    const r=parseInt(m[1].slice(0,2),16);
+    const g=parseInt(m[1].slice(2,4),16);
+    const b=parseInt(m[1].slice(4,6),16);
+    if(r>240&&g>240&&b>240) return 'unknown'; // near-white
+    // Green-ish: G is highest channel by margin
+    if(g>r+12&&g>b+12) return 'sold';
+    // Red-ish: R is highest channel by margin
+    if(r>g+12&&r>b+12) return 'inStock';
+    return 'unknown';
+}
+
 async function syncInventory(){
     const el=document.getElementById('invSyncLabel');
+    const appsUrl=localStorage.getItem('lp2p_apps_script_url')||'';
+    let fromApps=false;
     try{
-        const r=await fetch('https://docs.google.com/spreadsheets/d/'+INVENTORY_SHEET_ID+'/gviz/tq?tqx=out:csv&t='+Date.now());
-        const csv=await r.text();
-        const clean=csv.replace(/^\uFEFF/,'');
-        // Re-use parseCSVRow but handle multi-line cells: gviz wraps multi-line in quotes; we need a full CSV parser
-        const rows=parseFullCSV(clean);
-        inventory=[];
-        rows.forEach(cols=>{
-            if(!cols.length) return;
-            const nom=cols[0]||'';
-            const low=nom.toLowerCase().trim();
-            if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
-            const it=parseInvRow(nom,cols[1],cols[2],cols[3]);
-            if(it) inventory.push(it);
-        });
-        if(el){ el.textContent='Inventaire: '+inventory.length+' items'; el.className='inv-sync ok'; }
+        if(appsUrl){
+            // Apps Script endpoint returns [{values:[nom,achat,revente,benef], color:'#...'}...]
+            const r=await fetch(appsUrl+(appsUrl.includes('?')?'&':'?')+'t='+Date.now(),{redirect:'follow'});
+            if(!r.ok) throw new Error('Apps Script HTTP '+r.status);
+            const data=await r.json();
+            inventory=[];
+            data.forEach(row=>{
+                const nom=(row.values&&row.values[0])||'';
+                const low=(nom||'').toString().toLowerCase().trim();
+                if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
+                const it=parseInvRow(nom,row.values[1],row.values[2],row.values[3]);
+                if(!it) return;
+                it.bgColor=row.color||'';
+                it.stockStatus=classifyColor(row.color);
+                // sold items are NOT available
+                it.available=(it.stockStatus!=='sold');
+                inventory.push(it);
+            });
+            fromApps=true;
+        } else {
+            const r=await fetch('https://docs.google.com/spreadsheets/d/'+INVENTORY_SHEET_ID+'/gviz/tq?tqx=out:csv&t='+Date.now());
+            const csv=await r.text();
+            const clean=csv.replace(/^\uFEFF/,'');
+            const rows=parseFullCSV(clean);
+            inventory=[];
+            rows.forEach(cols=>{
+                if(!cols.length) return;
+                const nom=cols[0]||'';
+                const low=nom.toLowerCase().trim();
+                if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
+                const it=parseInvRow(nom,cols[1],cols[2],cols[3]);
+                if(!it) return;
+                it.stockStatus='unknown';
+                it.available=true;
+                inventory.push(it);
+            });
+        }
+        if(el){
+            const soldN=inventory.filter(i=>i.stockStatus==='sold').length;
+            const inN=inventory.filter(i=>i.stockStatus==='inStock').length;
+            const avail=inventory.filter(i=>i.available).length;
+            el.textContent=fromApps
+                ? 'Inventaire: '+avail+' dispo ('+inN+' stock / '+soldN+' vendus)'
+                : 'Inventaire: '+inventory.length+' items (CSV - sans couleurs)';
+            el.className='inv-sync ok';
+        }
         render();
     }catch(e){
         console.error('Inventory sync error',e);
@@ -620,7 +679,7 @@ function findMatches(d){
     if(!m.artist||m.artist==='NC') return [];
     const out=[];
     inventory.forEach(it=>{
-        if(!it.available) return;
+        if(!it.available) return; // excludes sold (green)
         if(it.artist!==m.artist) return;
         let score=10; // artist matched
         // Category
@@ -635,6 +694,8 @@ function findMatches(d){
         }
         // Has a buy price
         if(!it.prixAchat) score-=2;
+        // Boost confirmed-in-stock (red cells) above unknown
+        if(it.stockStatus==='inStock') score+=5;
         out.push({...it,score});
     });
     out.sort((a,b)=>b.score-a.score);
@@ -712,18 +773,23 @@ function render(){
         let expandHtml='';
         if(expandedDemand===ri && matches.length){
             const items=matches.map((m,mi)=>{
-                const benef=m.prixVente-m.prixAchat;
-                const benefPct=m.prixAchat?((benef/m.prixAchat)*100).toFixed(0):'';
+                const floor=Math.ceil((m.prixAchat||0)*(1+MIN_MARKUP));
+                const suggested=suggestedSellPrice(m);
+                const benef=suggested-m.prixAchat;
+                const markupPct=m.prixAchat?((benef/m.prixAchat)*100).toFixed(0):'-';
+                const bumped=suggested>m.prixVente&&m.prixVente>0; // floor kicked in
+                const statusHtml=m.stockStatus==='sold'?'<span class="stock-pill stock-sold">VENDU</span>':m.stockStatus==='inStock'?'<span class="stock-pill stock-in">EN STOCK</span>':'';
                 return`<div class="match-item">
 <span class="score-pill">${m.score}</span>
-<div class="mi-name">${esc(m.cleanName)}</div>
+<div class="mi-name">${statusHtml}${esc(m.cleanName)}</div>
 <div class="mi-price">
 ${m.prixAchat?'<span class="mi-achat">Achat '+m.prixAchat.toFixed(0)+'€</span>':''}
-${m.prixVente?'<span class="mi-vente">Vente '+m.prixVente.toFixed(0)+'€</span>':''}
-${benef?'<span class="mi-benef">'+(benef>0?'+':'')+benef.toFixed(0)+'€ ('+benefPct+'%)</span>':''}
+${m.prixVente?'<span class="mi-vente" '+(bumped?'style="text-decoration:line-through;opacity:.5"':'')+'>Revente '+m.prixVente.toFixed(0)+'€</span>':''}
+<span class="mi-suggested">&rarr; ${suggested}€ <span class="mi-pct">(+${markupPct}%)</span></span>
+${bumped?'<span class="mi-flag" title="Prix remonte au palier minimum 30%">&uarr; palier 30%</span>':''}
 </div>
 <div class="mi-actions">
-<button class="mi-btn primary" onclick="proposeMatch(${ri},${mi})">Proposer</button>
+<button class="mi-btn primary" onclick="proposeMatch(${ri},${mi})">Proposer ${suggested}€</button>
 <button class="mi-btn" onclick="customPropose(${ri},${mi})">Custom €</button>
 </div>
 </div>`;}).join('');
@@ -841,14 +907,32 @@ function toggleMatches(ri){
     render();
 }
 
+const MIN_MARKUP=0.30; // 30% floor on sell price
+
+function suggestedSellPrice(m){
+    const achat=m.prixAchat||0;
+    const floor=Math.ceil(achat*(1+MIN_MARKUP)); // round up to whole EUR
+    const sheetPrice=m.prixVente||0;
+    return Math.max(sheetPrice,floor);
+}
+
 function buildProposalMessage(d,m,priceOverride){
-    const sellPrice=priceOverride!=null?priceOverride:m.prixVente;
+    let sellPrice=priceOverride!=null?priceOverride:suggestedSellPrice(m);
+    // Even with override, enforce the floor
+    const floor=Math.ceil((m.prixAchat||0)*(1+MIN_MARKUP));
+    if(priceOverride!=null && sellPrice<floor){
+        sellPrice=floor;
+    }
     const benef=sellPrice-m.prixAchat;
+    const markupPct=m.prixAchat?((benef/m.prixAchat)*100).toFixed(0):'-';
     const name=(d.client||'').split('(')[0].trim();
     const cat=m.cat&&m.cat!=='NC'?m.cat:(d.cat||'');
     const dateLbl=d.dateDisp||d.dateEvent||m.dateLabel||'';
     return {
         clientMsg:`Salut ${name}! J'ai trouve pour ${d.artist}${dateLbl?' ('+dateLbl+')':''}${cat?' en '+cat:''}. Je te la propose a ${sellPrice}EUR. Ca t'interesse ?`,
+        sellPrice,
+        benef,
+        markupPct,
         internal:{
             client:d.client,
             artist:d.artist,
@@ -859,7 +943,7 @@ function buildProposalMessage(d,m,priceOverride){
             buy_price:m.prixAchat,
             proposed_price:sellPrice,
             expected_profit:benef,
-            expected_profit_pct:m.prixAchat?((benef/m.prixAchat)*100).toFixed(1)+'%':'-',
+            expected_profit_pct:markupPct+'%',
         }
     };
 }
@@ -931,6 +1015,20 @@ function configureWebhook(){
     if(v===null) return;
     if(v.trim()){ localStorage.setItem('lp2p_webhook_url',v.trim()); showToast('Webhook enregistre','Propositions -> Telegram'); }
     else { localStorage.removeItem('lp2p_webhook_url'); showToast('Webhook desactive','Propositions copiees localement'); }
+}
+
+function configureAppsScript(){
+    const cur=localStorage.getItem('lp2p_apps_script_url')||'';
+    const v=prompt('URL du Web App Google Apps Script qui lit les couleurs de l inventaire (voir SOURCING.md). Laisser vide pour revenir au CSV sans couleurs:',cur);
+    if(v===null) return;
+    if(v.trim()){
+        localStorage.setItem('lp2p_apps_script_url',v.trim());
+        showToast('Apps Script enregistre','Sync en cours avec couleurs...');
+    } else {
+        localStorage.removeItem('lp2p_apps_script_url');
+        showToast('Apps Script desactive','Retour au CSV sans couleurs');
+    }
+    syncInventory();
 }
 
 // ===== FILTERS =====
