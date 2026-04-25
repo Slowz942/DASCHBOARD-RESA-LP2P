@@ -131,7 +131,6 @@
         .src-other{background:var(--surface3);color:var(--text3)}
         .date-main{font-weight:600;color:var(--text)}
         .date-sub{font-size:.7rem;color:var(--text3)}
-        .lieu-text{font-size:.78rem;color:var(--text2)}
 
         .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:500;padding:4px 10px;border-radius:20px}
         .st-new{background:rgba(220,38,38,.1);color:#f87171}
@@ -335,7 +334,6 @@
                         <th onclick="doSort('client')">Client</th>
                         <th onclick="doSort('artist')">Artiste</th>
                         <th onclick="doSort('dateEvent')">Evenement</th>
-                        <th>Lieu</th>
                         <th>Places</th>
                         <th>Categorie</th>
                         <th>Source</th>
@@ -416,8 +414,8 @@
         <h2 id="mTitle">Nouvelle demande</h2>
         <div class="m-row"><div class="m-field"><label>Client</label><input id="fClient" placeholder="Nom Prenom (@instagram)"></div><div class="m-field"><label>Source</label><select id="fSource"><option value="instagram">Instagram</option><option value="telegram">Telegram</option><option value="tiktok">TikTok</option><option value="autre">Autre</option></select></div></div>
         <div class="m-row"><div class="m-field"><label>Artiste</label><input id="fArtist" placeholder="JUL, Celine Dion..."></div><div class="m-field"><label>Date evenement</label><input id="fDateEvent" placeholder="16 Mai 2026"></div></div>
-        <div class="m-row"><div class="m-field"><label>Lieu</label><input id="fLieu" placeholder="Stade de France, Accor Arena..."></div><div class="m-field"><label>Places</label><input id="fPlaces" type="text" placeholder="2"></div></div>
-        <div class="m-row"><div class="m-field"><label>Categorie</label><input id="fCat" placeholder="FOSSE, CAT 1, VIP..."></div><div class="m-field"><label>Statut</label><select id="fStatus"><option value="new">Nouvelle</option><option value="pending">En cours</option><option value="done">Traitee</option><option value="cancelled">Annulee</option></select></div></div>
+        <div class="m-row"><div class="m-field"><label>Places</label><input id="fPlaces" type="text" placeholder="2"></div><div class="m-field"><label>Categorie</label><input id="fCat" placeholder="FOSSE, CAT 1, VIP..."></div></div>
+        <div class="m-row"><div class="m-field"><label>Statut</label><select id="fStatus"><option value="new">Nouvelle</option><option value="pending">En cours</option><option value="done">Traitee</option><option value="cancelled">Annulee</option></select></div></div>
         <div class="m-row"><div class="m-field"><label>Notes</label><input id="fNotes" placeholder="Details..."></div></div>
         <div class="m-actions"><button class="btn btn-ghost" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveDemand()">Enregistrer</button></div>
     </div>
@@ -756,7 +754,6 @@ function render(){
 <td><div class="client-cell"><div class="avatar" style="background:${avatarBg(d.artist)}">${initials(d.client)}</div><div><div class="client-name">${esc(d.client.split('(')[0].trim())}</div><div class="client-ig">${esc(d.client.match(/\(@?\S+\)/)?d.client.match(/\(@?\S+\)/)[0]:'')}</div></div></div></td>
 <td><span class="tag ${tagClass(d.artist)}">${esc(d.artist)}</span></td>
 <td><div class="date-main">${esc(d.dateDisp||d.dateEvent||'NC')}</div></td>
-<td><span class="lieu-text">${esc(d.lieu||'NC')}</span></td>
 <td><span class="places-num">${esc(d.places)}</span></td>
 <td><span class="cat-tag">${esc(d.cat||'NC')}</span></td>
 <td><span class="source-tag ${srcC[d.source]||'src-other'}">${srcL[d.source]||esc(d.source)||'?'}</span></td>
@@ -793,7 +790,7 @@ ${bumped?'<span class="mi-flag" title="Prix remonte au palier minimum 30%">&uarr
 <button class="mi-btn" onclick="customPropose(${ri},${mi})">Custom €</button>
 </div>
 </div>`;}).join('');
-            expandHtml=`<tr class="match-row"><td colspan="11"><div class="match-panel"><div class="match-panel-head">&#128200; ${matches.length} item(s) en stock pour ${esc(d.artist)}</div>${items}</div></td></tr>`;
+            expandHtml=`<tr class="match-row"><td colspan="10"><div class="match-panel"><div class="match-panel-head">&#128200; ${matches.length} item(s) en stock pour ${esc(d.artist)}</div>${items}</div></td></tr>`;
         }
         return rowHtml+expandHtml;
     }).join('');
@@ -842,7 +839,7 @@ function renderSales(){
         return`<tr ondblclick="editSale(${ri})">
 <td><div class="client-cell"><div class="avatar" style="background:${avatarBg(s.artist)}">${initials(s.client)}</div><div><div class="client-name">${esc(s.client.split('(')[0].trim())}</div><div class="client-ig">${esc(s.client.match(/\(@?\S+\)/)?s.client.match(/\(@?\S+\)/)[0]:'')}</div></div></div></td>
 <td><span class="tag ${tagClass(s.artist)}">${esc(s.artist)}</span></td>
-<td><div class="date-main">${esc(s.dateDisp||s.dateEvent||'NC')}</div><div class="lieu-text">${esc(s.lieu||'')}</div></td>
+<td><div class="date-main">${esc(s.dateDisp||s.dateEvent||'NC')}</div></td>
 <td><span class="places-num">${esc(s.places)}</span></td>
 <td>${pa?'<span class="prix-achat">'+pa.toFixed(0)+'&euro;</span>':'<span class="no-info">-</span>'}</td>
 <td>${pv?'<span class="prix-vente">'+pv.toFixed(0)+'&euro;</span>':'<span class="no-info">-</span>'}</td>
@@ -1053,7 +1050,7 @@ function sellDemand(i){
     document.getElementById('smDemandInfo').innerHTML=`<div class="m-info"><div class="m-info-row"><span class="m-info-label">Client</span><span class="m-info-value">${esc(d.client)}</span></div><div class="m-info-row"><span class="m-info-label">Artiste</span><span class="m-info-value">${esc(d.artist)}</span></div><div class="m-info-row"><span class="m-info-label">Evenement</span><span class="m-info-value">${esc(d.dateDisp||d.dateEvent||'NC')}</span></div><div class="m-info-row"><span class="m-info-label">Places</span><span class="m-info-value">${esc(d.places)} - ${esc(d.cat||'NC')}</span></div></div>`;
     document.getElementById('smClient').value=d.client;
     document.getElementById('smArtist').value=d.artist;
-    document.getElementById('smEvent').value=(d.dateDisp||d.dateEvent||'')+(d.lieu?' - '+d.lieu:'');
+    document.getElementById('smEvent').value=(d.dateDisp||d.dateEvent||'');
     document.getElementById('smPlaces').value=d.places;
     document.getElementById('smCat').value=d.cat||'';
     document.getElementById('smPrixAchat').value='';
@@ -1066,10 +1063,10 @@ function sellDemand(i){
 }
 
 // ===== MODAL DEMANDE =====
-function openModal(){editIdx=-1;document.getElementById('mTitle').textContent='Nouvelle demande';['fClient','fArtist','fDateEvent','fLieu','fPlaces','fCat','fNotes'].forEach(id=>document.getElementById(id).value='');document.getElementById('fSource').value='instagram';document.getElementById('fStatus').value='new';document.getElementById('modal').classList.add('open')}
-function editDemand(i){editIdx=i;const d=demands[i];document.getElementById('mTitle').textContent='Modifier demande';document.getElementById('fClient').value=d.client;document.getElementById('fArtist').value=d.artist;document.getElementById('fDateEvent').value=d.dateDisp||d.dateEvent||'';document.getElementById('fLieu').value=d.lieu||'';document.getElementById('fPlaces').value=d.places;document.getElementById('fCat').value=d.cat||'';document.getElementById('fSource').value=d.source||'instagram';document.getElementById('fStatus').value=d.status;document.getElementById('fNotes').value=d.notes||'';document.getElementById('modal').classList.add('open')}
+function openModal(){editIdx=-1;document.getElementById('mTitle').textContent='Nouvelle demande';['fClient','fArtist','fDateEvent','fPlaces','fCat','fNotes'].forEach(id=>document.getElementById(id).value='');document.getElementById('fSource').value='instagram';document.getElementById('fStatus').value='new';document.getElementById('modal').classList.add('open')}
+function editDemand(i){editIdx=i;const d=demands[i];document.getElementById('mTitle').textContent='Modifier demande';document.getElementById('fClient').value=d.client;document.getElementById('fArtist').value=d.artist;document.getElementById('fDateEvent').value=d.dateDisp||d.dateEvent||'';document.getElementById('fPlaces').value=d.places;document.getElementById('fCat').value=d.cat||'';document.getElementById('fSource').value=d.source||'instagram';document.getElementById('fStatus').value=d.status;document.getElementById('fNotes').value=d.notes||'';document.getElementById('modal').classList.add('open')}
 function closeModal(){document.getElementById('modal').classList.remove('open')}
-function saveDemand(){const d={client:document.getElementById('fClient').value,artist:document.getElementById('fArtist').value.toUpperCase(),dateEvent:'',dateDisp:document.getElementById('fDateEvent').value,places:document.getElementById('fPlaces').value,cat:document.getElementById('fCat').value,source:document.getElementById('fSource').value,dateMsg:new Date().toISOString().split('T')[0],status:document.getElementById('fStatus').value,notes:document.getElementById('fNotes').value,lieu:document.getElementById('fLieu').value,manual:true};if(!d.client||!d.artist)return alert('Client et Artiste requis');if(editIdx>=0)demands[editIdx]=Object.assign(demands[editIdx],d);else demands.push(d);save();closeModal();render();showToast('Demande enregistree','OK')}
+function saveDemand(){const d={client:document.getElementById('fClient').value,artist:document.getElementById('fArtist').value.toUpperCase(),dateEvent:'',dateDisp:document.getElementById('fDateEvent').value,places:document.getElementById('fPlaces').value,cat:document.getElementById('fCat').value,source:document.getElementById('fSource').value,dateMsg:new Date().toISOString().split('T')[0],status:document.getElementById('fStatus').value,notes:document.getElementById('fNotes').value,manual:true};if(!d.client||!d.artist)return alert('Client et Artiste requis');if(editIdx>=0)demands[editIdx]=Object.assign(demands[editIdx],d);else demands.push(d);save();closeModal();render();showToast('Demande enregistree','OK')}
 
 // ===== MODAL VENTE =====
 function openSaleModal(idx){
@@ -1110,8 +1107,7 @@ function saveSale(){
         vendeur:document.getElementById('smVendeur').value,
         codePlaces:document.getElementById('smCode').value,
         dateSale:new Date().toISOString().split('T')[0],
-        saleNotes:document.getElementById('smNotes').value,
-        lieu:''
+        saleNotes:document.getElementById('smNotes').value
     };
     if(!s.client||!s.artist)return alert('Client et Artiste requis');
     if(editSaleIdx>=0){
@@ -1173,12 +1169,15 @@ async function syncTelegram(){
         }
         const parsed=[];
         rows.forEach(cols=>{
+            // New sheet column order: Nom | Instagram | Event | Date | Categorie | Places | Recommandation | submitted
             const nom=cols[0]||'';
             const ig=cols[1]||'';
             const ev=cols[2]||'';
-            const pl=cols[3]||'';
-            const src=cols[4]||'';
-            const date=cols[5]||'';
+            const dateEv=cols[3]||'';
+            const catFromSheet=cols[4]||'';
+            const pl=cols[5]||'';
+            const src=cols[6]||'';
+            const submitted=cols[7]||'';
             if(!nom) return;
             const ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','CÉLINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','GIMS','JOSMAN','THEODORA','ROMY','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK'];
             const evUp=(ev||'').toUpperCase();
@@ -1188,29 +1187,36 @@ async function syncTelegram(){
             if(artist==='CÉLINE DION')artist='CELINE DION';
             if(artist==='AYA'&&!evUp.includes('NAKAMURA'))artist='AYA NAKAMURA';
             if(!artist) artist=(ev||'').split('/')[0].split(' ').slice(0,3).join(' ').toUpperCase().trim();
-            let cat='NC';
-            if(/fosse|parterre debout/i.test(ev))cat='FOSSE';
-            if(/fosse or/i.test(ev))cat='FOSSE OR';
-            if(/vip|diamant|carr[eé] or/i.test(ev))cat='VIP';
-            if(/carr[eé] or/i.test(ev))cat='CARRE OR';
-            if(/cat[eé]?g?o?r?i?e?\s*(\d)/i.test(ev)){const m=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);cat='CAT '+m[1]}
-            if(/cat\s*(\d)/i.test(ev)){const m=ev.match(/cat\s*(\d)/i);cat='CAT '+m[1]}
+            // Category: prefer explicit Categorie column, fall back to regex over event description
+            let cat=(catFromSheet||'').trim();
+            if(!cat||cat==='—'||cat.toLowerCase()==='nc'){
+                cat='NC';
+                if(/fosse or/i.test(ev))cat='FOSSE OR';
+                else if(/fosse|parterre debout/i.test(ev))cat='FOSSE';
+                else if(/carr[eé]\s*or/i.test(ev))cat='CARRE OR';
+                else if(/vip|diamant/i.test(ev))cat='VIP';
+                else {
+                    const mc=ev.match(/cat[eé]?g?o?r?i?e?\s*(\d)/i);
+                    if(mc)cat='CAT '+mc[1];
+                }
+            } else {
+                cat=cat.toUpperCase();
+            }
             let source='instagram';
             if(src){const sl=src.toLowerCase();if(sl.includes('tiktok'))source='tiktok';else if(sl.includes('ami'))source='recommandation'}
-            const dateMsg=date?date.split('T')[0]:'';
+            const dateMsg=submitted?submitted.split('T')[0]:'';
             parsed.push({
                 client:(nom||'')+(ig&&ig!=='—'?' ('+ig+')':''),
                 artist:artist||'NC',
                 dateEvent:'',
-                dateDisp:ev||'',
+                dateDisp:dateEv||ev||'',
                 places:pl||'1',
                 cat,
                 source,
                 dateMsg,
                 status:'new',
                 notes:ev||'',
-                lieu:'',
-                sheetId:nom+ig+date
+                sheetId:nom+ig+submitted
             });
         });
         if(parsed.length>lastSheetCount&&lastSheetCount>0){
@@ -1244,8 +1250,8 @@ function showToast(t,s){const to=document.getElementById('toast');document.getEl
 
 // ===== EXPORT =====
 function exportCSV(){
-    let csv='Client,Artiste,Date,Lieu,Places,Categorie,Source,Recu le,Statut,Notes\n';
-    demands.forEach(d=>{csv+=`"${d.client}","${d.artist}","${d.dateDisp||d.dateEvent||''}","${d.lieu||''}","${d.places}","${d.cat||''}","${d.source}","${d.dateMsg||''}","${d.status}","${(d.notes||'').replace(/"/g,"'")}"\n`});
+    let csv='Client,Artiste,Date,Places,Categorie,Source,Recu le,Statut,Notes\n';
+    demands.forEach(d=>{csv+=`"${d.client}","${d.artist}","${d.dateDisp||d.dateEvent||''}","${d.places}","${d.cat||''}","${d.source}","${d.dateMsg||''}","${d.status}","${(d.notes||'').replace(/"/g,"'")}"\n`});
     const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='demandes_lesplaces2paris.csv';a.click();URL.revokeObjectURL(url);
 }
 function exportSalesCSV(){
