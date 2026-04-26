@@ -187,6 +187,11 @@
         .stock-pill{display:inline-block;font-size:.58rem;padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:1px;margin-right:8px;vertical-align:middle}
         .stock-sold{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.35)}
         .stock-in{background:rgba(220,38,38,.12);color:#f87171;border:1px solid rgba(220,38,38,.35)}
+        .source-pill{display:inline-block;font-size:.62rem;padding:2px 8px;border-radius:4px;font-weight:700;letter-spacing:.5px;margin-right:8px;vertical-align:middle}
+        .src-stock{background:rgba(34,197,94,.10);color:#4ade80;border:1px solid rgba(34,197,94,.30)}
+        .src-discord{background:rgba(88,101,242,.14);color:#a5b4fc;border:1px solid rgba(88,101,242,.40)}
+        .mi-seller{font-size:.68rem;color:#a5b4fc;font-family:'Courier New',monospace;margin-left:6px}
+        .match-item.is-discord{background:linear-gradient(180deg,rgba(88,101,242,.05),var(--surface2));border-color:rgba(88,101,242,.18)}
         .mi-actions{display:flex;gap:6px}
         .mi-btn{padding:5px 12px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface3);color:var(--text2);font-family:'Inter',sans-serif;transition:all .15s}
         .mi-btn.primary{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none}
@@ -291,7 +296,8 @@
             <div class="sync-info"><span class="sync-dot live" id="syncDot"></span> <span id="syncLabel">Auto-sync actif</span></div>
             <div class="sync-sub" id="syncSub">Derniere sync: --</div>
             <div class="inv-sync" id="invSyncLabel">Inventaire: --</div>
-            <button class="btn-sync" onclick="syncTelegram();syncInventory()" id="syncBtn">Sync tout</button>
+            <div class="inv-sync" id="discordSyncLabel">Discord: --</div>
+            <button class="btn-sync" onclick="syncTelegram();syncInventory();syncDiscordSourcing()" id="syncBtn">Sync tout</button>
             <button class="btn-sync" onclick="configureAppsScript()" style="margin-top:6px">Apps Script (couleurs)</button>
             <button class="btn-sync" onclick="configureWebhook()" style="margin-top:6px">Webhook Telegram</button>
         </div>
@@ -482,6 +488,8 @@ let fromDemandIdx=-1; // when creating sale from a demand
 
 // ===== INVENTORY / SOURCING =====
 const INVENTORY_SHEET_ID='1jSQNoni7qW6ShnRw3hi_g_fF90qn5YZ3koRaL1gYTLE';
+const DISCORD_SOURCING_SHEET_ID='10QzZ14S4fA5zuM-UyROwmsIKLcwPata6cVLN23bukW8';
+let discordListings=[]; // parsed rows from the Sourcing Discord sheet (n8n-fed)
 const KNOWN_ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','BRUNOS MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','GIMS','JOSMAN','THEODORA','ROMY','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK','THE WEEKND','WEEKND','LAMANO','LA MANO','L2B','LUIDJI','FREEZE CORLEONE','LOMEPAL','ORELSAN','FEDER','KAARIS','LACRIM','KALASH CRIMINEL'];
 const FR_MONTHS={janvier:'01',fevrier:'02','février':'02',mars:'03',avril:'04',mai:'05',juin:'06',juillet:'07',aout:'08','août':'08',septembre:'09',octobre:'10',novembre:'11',decembre:'12','décembre':'12'};
 
@@ -581,6 +589,103 @@ function classifyColor(hex){
     return 'unknown';
 }
 
+// Pull listings from the Sourcing Discord sheet (n8n-fed). Public CSV via gviz.
+// Status column is interpreted as text: anything containing 'taken', 'sold',
+// 'vendu', 'unavailable' marks the row unavailable; anything else is treated
+// as available.
+async function syncDiscordSourcing(){
+    const el=document.getElementById('discordSyncLabel');
+    try{
+        const r=await fetch('https://docs.google.com/spreadsheets/d/'+DISCORD_SOURCING_SHEET_ID+'/gviz/tq?tqx=out:csv&t='+Date.now());
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const csv=await r.text();
+        const clean=csv.replace(/^﻿/,'');
+        const rows=parseFullCSV(clean);
+        if(rows.length===0){ discordListings=[]; if(el) el.textContent='Discord: vide'; return; }
+        // First row is the header; map columns by name so order can drift.
+        const header=rows[0].map(h=>(h||'').trim().toLowerCase());
+        const idx=name=>header.indexOf(name);
+        const cI=idx('listing_id'),sH=idx('seller_handle'),sI=idx('seller_id'),
+              aR=idx('artist'),dI=idx('event_date_iso'),dL=idx('event_label'),
+              cT=idx('category'),qT=idx('quantity'),pU=idx('price_per_unit'),
+              pT=idx('price_total'),bL=idx('block'),nT=idx('notes'),
+              mI=idx('message_id'),rM=idx('raw_message'),pA=idx('posted_at'),
+              sA=idx('scraped_at'),sT=idx('status');
+        const out=[];
+        for(let i=1;i<rows.length;i++){
+            const cols=rows[i];
+            if(!cols||!cols.length) continue;
+            const artist=normalizeArtist((cols[aR]||'').trim());
+            // Skip rows that are PARSE_ERROR / NO_LISTING / NO_MESSAGES_IN_INPUT diagnostics
+            if(!artist||['PARSE_ERROR','NO_LISTING','NO_MESSAGES_IN_INPUT'].includes(artist)) continue;
+            const status=((cols[sT]||'').toString().toLowerCase());
+            const isUnavailable=/taken|sold|vendu|unavailable|gone|reserved|reserv[eé]/i.test(status);
+            // Parse date from event_date_iso (YYYY-MM-DD); fall back to event_label scan.
+            let dateMonth=null,dateDay=null;
+            const iso=(cols[dI]||'').trim();
+            const isoM=iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if(isoM){ dateMonth=isoM[2]; dateDay=isoM[3]; }
+            else{
+                const label=cols[dL]||'';
+                const dm=label.match(/\b(\d{1,2})\s+(janvier|f[eé]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[eé]cembre)\b/i);
+                if(dm){ dateDay=dm[1].padStart(2,'0'); dateMonth=FR_MONTHS[dm[2].toLowerCase()]||null; }
+                else {
+                    const dm2=label.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+                    if(dm2){ dateDay=dm2[1].padStart(2,'0'); dateMonth=dm2[2].padStart(2,'0'); }
+                }
+            }
+            const cat=(cols[cT]||'NC').toString().toUpperCase().trim();
+            const qty=parseInt(cols[qT])||1;
+            const ppu=parseFloat((cols[pU]||'').toString().replace(',','.'))||0;
+            const total=parseFloat((cols[pT]||'').toString().replace(',','.'))||null;
+            out.push({
+                listingId: cols[cI]||'',
+                source: 'discord',
+                seller: (cols[sH]||'').trim(),
+                sellerId: (cols[sI]||'').trim(),
+                artist,
+                cat,
+                qty,
+                dateMonth, dateDay,
+                dateLabel: (cols[dL]||'').trim(),
+                eventDateIso: iso,
+                prixAchat: ppu,                // we BUY from Discord seller at this price
+                prixVente: 0,                  // no resale price set yet — markup floor will compute
+                priceTotal: total,
+                block: (cols[bL]||'').trim()||null,
+                notes: (cols[nT]||'').trim(),
+                cleanName: buildDiscordCleanName({artist,cat,qty,label:cols[dL],block:cols[bL]}),
+                rawMessage: (cols[rM]||'').toString().trim(),
+                postedAt: (cols[pA]||'').trim(),
+                scrapedAt: (cols[sA]||'').trim(),
+                status,
+                available: !isUnavailable,
+                stockStatus: 'discord', // distinguish from inventory's inStock/sold/unknown
+            });
+        }
+        discordListings=out;
+        if(el){
+            const avail=out.filter(o=>o.available).length;
+            el.textContent='Discord: '+avail+' dispo (sur '+out.length+')';
+            el.className='inv-sync ok';
+        }
+        render();
+    }catch(e){
+        console.error('Discord sourcing sync error',e);
+        if(el){ el.textContent='Discord: erreur'; el.className='inv-sync err'; }
+    }
+}
+
+function buildDiscordCleanName(p){
+    const parts=[];
+    if(p.qty&&p.qty>1) parts.push('x'+p.qty);
+    if(p.cat&&p.cat!=='NC') parts.push(p.cat);
+    if(p.artist) parts.push(p.artist);
+    if(p.label) parts.push(p.label);
+    if(p.block) parts.push('('+p.block+')');
+    return parts.join(' ');
+}
+
 async function syncInventory(){
     const el=document.getElementById('invSyncLabel');
     const appsUrl=localStorage.getItem('lp2p_apps_script_url')||'';
@@ -672,29 +777,42 @@ function demandMeta(d){
 }
 
 function findMatches(d){
-    if(!inventory.length) return [];
+    if(!inventory.length && !discordListings.length) return [];
     const m=demandMeta(d);
     if(!m.artist||m.artist==='NC') return [];
     const out=[];
+    // 1. Internal inventory (your own stock)
     inventory.forEach(it=>{
         if(!it.available) return; // excludes sold (green)
         if(it.artist!==m.artist) return;
         let score=10; // artist matched
-        // Category
         if(it.cat===m.cat) score+=15;
         else if(m.catNC||it.cat==='NC') score+=3;
         else if(looseCatMatch(m.cat,it.cat)) score+=8;
-        else score-=3; // different cat but same artist — still keep
-        // Date
+        else score-=3;
         if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){
             score+=6;
             if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) score+=8;
         }
-        // Has a buy price
         if(!it.prixAchat) score-=2;
-        // Boost confirmed-in-stock (red cells) above unknown
         if(it.stockStatus==='inStock') score+=5;
-        out.push({...it,score});
+        out.push({...it,source:'stock',score});
+    });
+    // 2. External Discord listings (third-party sellers)
+    discordListings.forEach(it=>{
+        if(!it.available) return;
+        if(it.artist!==m.artist) return;
+        let score=8; // start slightly lower than own-stock so internal matches surface first when tied
+        if(it.cat===m.cat) score+=15;
+        else if(m.catNC||it.cat==='NC') score+=3;
+        else if(looseCatMatch(m.cat,it.cat)) score+=8;
+        else score-=3;
+        if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){
+            score+=6;
+            if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) score+=8;
+        }
+        if(!it.prixAchat) score-=2;
+        out.push({...it,source:'discord',score});
     });
     out.sort((a,b)=>b.score-a.score);
     return out;
@@ -748,8 +866,15 @@ function render(){
         const ri=demands.indexOf(d);
         const matches=findMatches(d);
         const mCell=matches.length
-            ? `<span class="match-badge mb-stock" onclick="toggleMatches(${ri})" title="Cliquez pour voir"><span class="mb-dot"></span>${matches.length} en stock</span>`
-            : `<span class="match-badge mb-none" title="Aucun match en inventaire">— aucun —</span>`;
+            ? (() => {
+                const stockN=matches.filter(x=>x.source!=='discord').length;
+                const dscN=matches.filter(x=>x.source==='discord').length;
+                const lbl = stockN&&dscN ? stockN+' stock · '+dscN+' Discord'
+                          : stockN ? stockN+' en stock'
+                          : dscN+' Discord';
+                return `<span class="match-badge mb-stock" onclick="toggleMatches(${ri})" title="Cliquez pour voir"><span class="mb-dot"></span>${lbl}</span>`;
+              })()
+            : `<span class="match-badge mb-none" title="Aucun match en inventaire ni sur Discord">— aucun —</span>`;
         const rowHtml=`<tr ondblclick="editDemand(${ri})">
 <td><div class="client-cell"><div class="avatar" style="background:${avatarBg(d.artist)}">${initials(d.client)}</div><div><div class="client-name">${esc(d.client.split('(')[0].trim())}</div><div class="client-ig">${esc(d.client.match(/\(@?\S+\)/)?d.client.match(/\(@?\S+\)/)[0]:'')}</div></div></div></td>
 <td><span class="tag ${tagClass(d.artist)}">${esc(d.artist)}</span></td>
@@ -770,18 +895,27 @@ function render(){
         let expandHtml='';
         if(expandedDemand===ri && matches.length){
             const items=matches.map((m,mi)=>{
+                const isDiscord=m.source==='discord';
                 const floor=Math.ceil((m.prixAchat||0)*(1+MIN_MARKUP));
                 const suggested=suggestedSellPrice(m);
                 const benef=suggested-m.prixAchat;
                 const markupPct=m.prixAchat?((benef/m.prixAchat)*100).toFixed(0):'-';
-                const bumped=suggested>m.prixVente&&m.prixVente>0; // floor kicked in
-                const statusHtml=m.stockStatus==='sold'?'<span class="stock-pill stock-sold">VENDU</span>':m.stockStatus==='inStock'?'<span class="stock-pill stock-in">EN STOCK</span>':'';
-                return`<div class="match-item">
+                const bumped=suggested>m.prixVente&&m.prixVente>0; // floor kicked in (only meaningful for own stock)
+                let sourceHtml;
+                if(isDiscord){
+                    sourceHtml='<span class="source-pill src-discord">DISCORD</span>'+
+                        (m.seller?'<span class="mi-seller">@'+esc(m.seller)+'</span>':'');
+                } else {
+                    sourceHtml=m.stockStatus==='sold'?'<span class="stock-pill stock-sold">VENDU</span>':
+                              m.stockStatus==='inStock'?'<span class="stock-pill stock-in">EN STOCK</span>':
+                              '<span class="source-pill src-stock">STOCK</span>';
+                }
+                return`<div class="match-item${isDiscord?' is-discord':''}">
 <span class="score-pill">${m.score}</span>
-<div class="mi-name">${statusHtml}${esc(m.cleanName)}</div>
+<div class="mi-name">${sourceHtml}${esc(m.cleanName)}</div>
 <div class="mi-price">
-${m.prixAchat?'<span class="mi-achat">Achat '+m.prixAchat.toFixed(0)+'€</span>':''}
-${m.prixVente?'<span class="mi-vente" '+(bumped?'style="text-decoration:line-through;opacity:.5"':'')+'>Revente '+m.prixVente.toFixed(0)+'€</span>':''}
+${m.prixAchat?'<span class="mi-achat">'+(isDiscord?'Vendeur ':'Achat ')+m.prixAchat.toFixed(0)+'€</span>':''}
+${(!isDiscord && m.prixVente)?'<span class="mi-vente" '+(bumped?'style="text-decoration:line-through;opacity:.5"':'')+'>Revente '+m.prixVente.toFixed(0)+'€</span>':''}
 <span class="mi-suggested">&rarr; ${suggested}€ <span class="mi-pct">(+${markupPct}%)</span></span>
 ${bumped?'<span class="mi-flag" title="Prix remonte au palier minimum 30%">&uarr; palier 30%</span>':''}
 </div>
@@ -790,7 +924,14 @@ ${bumped?'<span class="mi-flag" title="Prix remonte au palier minimum 30%">&uarr
 <button class="mi-btn" onclick="customPropose(${ri},${mi})">Custom €</button>
 </div>
 </div>`;}).join('');
-            expandHtml=`<tr class="match-row"><td colspan="10"><div class="match-panel"><div class="match-panel-head">&#128200; ${matches.length} item(s) en stock pour ${esc(d.artist)}</div>${items}</div></td></tr>`;
+            const stockN=matches.filter(x=>x.source!=='discord').length;
+            const dscN=matches.filter(x=>x.source==='discord').length;
+            const headLabel=stockN&&dscN
+                ? stockN+' en stock + '+dscN+' Discord'
+                : stockN
+                    ? stockN+' item(s) en stock'
+                    : dscN+' option(s) Discord';
+            expandHtml=`<tr class="match-row"><td colspan="10"><div class="match-panel"><div class="match-panel-head">&#128200; ${headLabel} pour ${esc(d.artist)}</div>${items}</div></td></tr>`;
         }
         return rowHtml+expandHtml;
     }).join('');
@@ -1270,6 +1411,8 @@ syncTelegram();
 syncInventory();
 setInterval(syncTelegram,30000);
 setInterval(syncInventory,60000);
+syncDiscordSourcing();
+setInterval(syncDiscordSourcing,60000);
 </script>
 </body>
 </html>
