@@ -9,9 +9,12 @@
 // >>> EDIT THIS ONE LINE WITH YOUR ANTHROPIC API KEY (starts with sk-ant-) <<<
 const ANTHROPIC_API_KEY = 'PASTE_YOUR_ANTHROPIC_KEY_HERE';
 
-// Easy to change if your account has a different model alias available.
-// Other valid options: 'claude-3-5-haiku-latest', 'claude-3-5-haiku-20241022'.
-const MODEL = 'claude-haiku-4-5';
+// Use a fully-versioned ID for maximum compatibility across Anthropic plans.
+// Other valid options to try if this 400s:
+//   'claude-3-5-haiku-latest'
+//   'claude-haiku-4-5-20250115'
+//   'claude-3-haiku-20240307'  (older fallback)
+const MODEL = 'claude-3-5-haiku-20241022';
 
 const SYSTEM_PROMPT = `You are a parser for WTS (Want To Sell) ticket posts on Discord, written in French, English, or a mix. Given the message content, extract every individual ticket listing into a JSON array. Each entry represents one (artist, date, category, quantity, price) tuple.
 
@@ -128,6 +131,8 @@ for (const msg of messages) {
   let resp;
   let apiErrorDetail = null;
   try {
+    // returnFullResponse + simple:false → don't throw on non-2xx, give us the
+    // full { statusCode, body, headers } so we can read Anthropic's error JSON.
     resp = await this.helpers.httpRequest({
       method: 'POST',
       url: 'https://api.anthropic.com/v1/messages',
@@ -143,13 +148,23 @@ for (const msg of messages) {
         messages: [{ role: 'user', content }],
       },
       json: true,
-      // Don't throw on non-2xx — we want to inspect the error body
-      returnFullResponse: false,
+      returnFullResponse: true,
+      simple: false,
     });
+    // resp is now { statusCode, body, headers }
+    if (resp?.statusCode && resp.statusCode >= 400) {
+      apiErrorDetail =
+        'HTTP ' + resp.statusCode + ' from Anthropic | model=' + MODEL +
+        ' | body=' + (typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body)).substring(0, 600);
+    } else {
+      // Unwrap to the body so the rest of the code stays the same
+      resp = resp?.body || resp;
+    }
   } catch (err) {
-    apiErrorDetail = 'HTTP ' + (err.message || String(err));
-    if (err.response?.body) {
-      apiErrorDetail += ' | body=' + JSON.stringify(err.response.body).substring(0, 400);
+    apiErrorDetail = 'HTTP exception: ' + (err.message || String(err));
+    const body = err.response?.body || err.cause?.response?.body;
+    if (body) {
+      apiErrorDetail += ' | body=' + (typeof body === 'string' ? body : JSON.stringify(body)).substring(0, 600);
     }
   }
 
