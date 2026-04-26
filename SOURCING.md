@@ -94,3 +94,94 @@ the sheet's `Revente` column is below `Achat × 1.30`, the dashboard displays
 the sheet price struck-through and proposes the bumped price with an
 `↑ palier 30%` flag. Custom prices entered via the **Custom €** button are
 also clamped to the floor.
+
+## 4. External sourcing — Discord WTS scraper (Phase 2 in progress)
+
+A Tampermonkey userscript watches a community Discord #wts channel from
+your browser and forwards new posts to an n8n webhook. n8n then asks
+Anthropic to extract structured rows (artist, date, category, qty, price,
+seller handle) and writes them to a separate "Sourcing Discord" Google
+Sheet. The dashboard then matches demands against external offers too.
+
+This route avoids both Discord bots (you're not a server admin) and
+selfbots (against ToS) — the userscript only observes what's already
+rendered in your browser tab. No Discord API calls, no token usage, no
+account-ban risk.
+
+### 4.1 Install the userscript
+
+**Prerequisite:** install the **Tampermonkey** browser extension
+(https://www.tampermonkey.net/) — Chrome, Edge, or Firefox.
+
+1. Open this file in your browser:
+   `userscript/discord-wts-scraper.user.js`
+   on the GitHub raw URL — Tampermonkey detects it and offers to install.
+2. Confirm install. The script is configured to only run on the WTS
+   channel URL (`@match` directive).
+3. Open Discord in Chrome. **Pin the WTS channel as a tab** so you keep
+   it open during the day.
+4. From the Tampermonkey icon → **LP2P · Discord WTS scraper** menu,
+   click **"Set webhook URL"**.
+
+   For initial testing, paste a `https://webhook.site/<id>` URL. Watch
+   the messages arrive there to confirm the format. Once happy, swap to
+   your real n8n webhook (Phase 2 below).
+
+5. Reload the WTS channel. You'll see a small `[LP2P] WTS scraper active`
+   toast at the bottom-right and the console will log every batch
+   forwarded.
+
+### 4.2 What gets sent
+
+For every NEW message that mentions `WTS`, `VDS`, `vends`, `sell`, or
+`sale`, the script POSTs a payload to your webhook:
+
+```json
+{
+  "source": "discord_wts",
+  "channel_id": "1201954119804264458",
+  "scraped_at": "2026-04-26T11:30:00.000Z",
+  "messages": [
+    {
+      "id": "1234567890123456789",
+      "author": "maximej",
+      "authorId": "98765432109876543",
+      "content": "WTS AYA 29/05 :\nx2 CAT OR (Bloc D4, Rang 19) - retail\nx2 CAT 1 (Bloc A6, Rang 25) - retail",
+      "timestamp": "2026-04-26T10:28:00.000+00:00"
+    },
+    ...
+  ]
+}
+```
+
+Already-seen messages (tracked by Discord message ID in Tampermonkey
+storage) are not re-sent on reload.
+
+### 4.3 Tampermonkey menu commands
+
+- **Set webhook URL** — change the n8n / webhook.site target
+- **Show status** — current webhook + count of seen message IDs
+- **Re-send last visible** — useful for backfilling: forget seen-IDs and
+  forward every message currently rendered
+- **Clear seen IDs** — wipe the dedupe cache
+- **Toggle WTS-only filter** — turn off to forward every channel message
+  (useful for debugging)
+
+### 4.4 n8n flow + dashboard integration (Phase 2 — TODO)
+
+Once messages start arriving at your test webhook and look correct, the
+next step is a new n8n workflow:
+
+```
+Webhook (POST)
+  → Loop: Code node — for each message, call Anthropic Messages API
+      prompt: "extract list of {artist, date, category, qty, price, ...} from this WTS post; return JSON array"
+  → Code node — flatten LLM output into one row per (artist, date, category, qty, price) tuple
+  → Google Sheets (append) — write to a new "Sourcing Discord" sheet
+```
+
+Then a second Apps Script (mirroring `google-apps-script/Code.gs`) reads
+that sheet, and the dashboard's `findMatches()` augments inventory matches
+with Discord offers tagged `Source: Discord · @seller_handle`.
+
+Wired up in a follow-up commit on `feature/discord-sourcing`.
