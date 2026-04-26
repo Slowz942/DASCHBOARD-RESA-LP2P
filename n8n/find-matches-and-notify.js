@@ -1,32 +1,35 @@
 /**
  * n8n Code node — runs after "format message" (the Tally email parser).
  *
- * Reads the freshly-parsed demand fields, fetches the Inventory and the
- * Sourcing Discord sheets, runs the same matching logic the dashboard uses,
- * and emits ONE item with everything the Telegram node downstream needs:
+ * Builds the rich Telegram notification (demand summary + inline keyboard
+ * with up to 8 proposable options pulled from the Inventory and the
+ * Sourcing Discord sheets) AND fires it directly to Telegram.
  *
- *   {
- *     telegram_text:    "<b>Nouvelle demande...</b>"  // HTML body
- *     reply_markup:     "{...}"                        // JSON string for inline keyboard
- *     demand:           {...}                          // for downstream nodes
- *     top_matches:      [...]                          // structured matches
- *   }
+ * Why fire the Telegram call from this Code node instead of the downstream
+ * Telegram node: n8n's Telegram "Reply Markup" parameter is a structured
+ * dropdown (None/Force Reply/Inline Keyboard/Reply Keyboard) — there's no
+ * clean way to pass a dynamic 1-8-button keyboard built at runtime. Calling
+ * api.telegram.org/bot<token>/sendMessage from here gives full control.
  *
  * SETUP:
- *   1. Drop this Code node right after "format message".
- *   2. Wire its output into the existing "sourcing request messsage" Telegram
- *      sendMessage node — set Text = {{ $json.telegram_text }} and
- *      enable Additional Fields → Reply Markup → {{ $json.reply_markup }}.
- *   3. Make sure parse_mode is HTML on the Telegram node.
+ *   1. EDIT the three lines marked >>> EDIT <<< below.
+ *   2. Drop this Code node right after "format message".
+ *   3. The existing "sourcing request messsage" Telegram node is now
+ *      redundant — disable or delete it (right-click → Disable). Other
+ *      branches (CRM sheet update, etc.) keep working as before.
+ *
+ * Output: the Code node still emits demand / top_matches / etc. as JSON so
+ * any downstream nodes you keep can use them.
  */
+
+// >>> EDIT THESE THREE LINES <<<
+const TELEGRAM_BOT_TOKEN = 'PASTE_YOUR_TELEGRAM_BOT_TOKEN_HERE'; // from BotFather (looks like 1234567890:ABC...)
+const TELEGRAM_CHAT_ID   = '5135913166';                          // your personal chat with the bot
+const APPS_SCRIPT_URL    = 'https://script.google.com/macros/s/AKfycbwKCiudNgJU4RtPk-tCv5A33IX3TVtIEJAU_LwbmdhpXHPbWRqYoLbYDUWzkR12zkQ8Hw/exec'; // leave as-is (your inventory Apps Script)
+// <<< END EDIT >>>
 
 const INVENTORY_SHEET_ID = '1jSQNoni7qW6ShnRw3hi_g_fF90qn5YZ3koRaL1gYTLE';
 const DISCORD_SHEET_ID   = '10QzZ14S4fA5zuM-UyROwmsIKLcwPata6cVLN23bukW8';
-
-// Optional: if you want the matcher to honor your inventory cell colors
-// (green = sold → exclude), paste your Apps Script /exec URL here.
-// Leave '' to fall back to the public CSV (ignores colors).
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKCiudNgJU4RtPk-tCv5A33IX3TVtIEJAU_LwbmdhpXHPbWRqYoLbYDUWzkR12zkQ8Hw/exec';
 
 const MIN_MARKUP  = 0.30;
 const MAX_OPTIONS = 8; // Telegram inline keyboard, ~8 rows = clean
@@ -382,19 +385,46 @@ if (top.length === 0) {
     reply_markup_obj = { inline_keyboard };
 }
 
+// Send the Telegram message ourselves so we can attach the dynamic
+// inline_keyboard cleanly. Skip if the token wasn't filled in.
+let telegramResult = null;
+if (TELEGRAM_BOT_TOKEN && TELEGRAM_BOT_TOKEN !== 'PASTE_YOUR_TELEGRAM_BOT_TOKEN_HERE') {
+    try {
+        const body = {
+            chat_id: TELEGRAM_CHAT_ID,
+            text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true,
+        };
+        if (Object.keys(reply_markup_obj).length) body.reply_markup = reply_markup_obj;
+        const resp = await this.helpers.httpRequest({
+            method: 'POST',
+            url: 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN + '/sendMessage',
+            headers: { 'content-type': 'application/json' },
+            body,
+            json: true,
+        });
+        telegramResult = { ok: !!resp?.ok, message_id: resp?.result?.message_id || null };
+    } catch (err) {
+        const dig = (e) => e?.response?.body || e?.cause?.response?.body || e?.body || null;
+        const errBody = dig(err);
+        telegramResult = {
+            ok: false,
+            error: (err?.message || String(err)).substring(0, 200),
+            body: errBody ? (typeof errBody === 'string' ? errBody : JSON.stringify(errBody)).substring(0, 400) : '(no body)',
+        };
+    }
+}
+
 return [{
     json: {
         // Pass everything the original "format message" produced through, plus our additions.
         ...tally,
         telegram_text: text,
         reply_markup: JSON.stringify(reply_markup_obj),
+        telegram_result: telegramResult,
         demand,
         top_matches: top,
-        // Persist a copy of (demand, top_matches) keyed by hash so the callback
-        // handler in the second flow can look them up. n8n cloud has no
-        // shared state, so we stash this in a Google Sheet or static workflow
-        // variable in Phase 5. For now the callback handler can refetch the
-        // sheets and re-run the matcher to find the same match by index.
         demand_hash: demandHash,
         match_count: top.length,
         inventory_count: inventory.length,

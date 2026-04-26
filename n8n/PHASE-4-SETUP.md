@@ -12,9 +12,9 @@ Tally email
    ↓
 [format message]   (existing)
    ↓
-[NEW: Find matches + build notif]   ← reads Inventory + Sourcing Discord sheets
-   ↓
-[Telegram sendMessage]              ← uses the computed text + reply_markup
+[NEW: Find matches + send notif]   ← reads Inventory + Sourcing Discord sheets,
+                                     posts directly to Telegram Bot API with
+                                     dynamic inline keyboard
    ↓
 [update CRM] (existing branch, parallel)
 
@@ -32,6 +32,11 @@ Second flow (separate workflow):
 
 ## 1. Modify the Tally workflow — insert "Find matches"
 
+The Code node sends the Telegram message itself (calls
+`api.telegram.org/bot<TOKEN>/sendMessage` directly) because n8n's Telegram
+node has a structured Reply Markup dropdown that can't pass dynamic 1-8-button
+keyboards cleanly. Going around it = full control with one less moving piece.
+
 1. Open your existing **Tally → CRM** workflow.
 2. Right-click the connection between **`format message`** and **`sourcing
    request messsage`** (the Telegram node) and click "Add node here".
@@ -41,29 +46,26 @@ Second flow (separate workflow):
    ```
    https://raw.githubusercontent.com/Slowz942/DASCHBOARD-RESA-LP2P/main/n8n/find-matches-and-notify.js
    ```
-5. Close the panel.
+5. **Edit lines 27-29** (the `>>> EDIT <<<` block):
+   - `TELEGRAM_BOT_TOKEN` — paste your bot token from BotFather. Looks like
+     `1234567890:AAH5VlR-...`. To find it: open Telegram, message
+     @BotFather → `/mybots` → pick your bot → "API Token".
+   - `TELEGRAM_CHAT_ID` — already filled in to `5135913166` (the same chat
+     your existing Telegram node uses). Leave as-is.
+   - `APPS_SCRIPT_URL` — already filled in to your inventory Apps Script
+     URL. Leave as-is.
+6. Close the panel.
 
-You don't need to change the API key or anything else — this Code node only
-reads the public Google Sheets, it doesn't call Anthropic.
+## 2. Disable the existing `sourcing request messsage` Telegram node
 
-## 2. Update the Telegram `sourcing request messsage` node
+The Find matches node now sends the rich notification itself, so the old
+simple-text Telegram node is redundant.
 
-1. Click the existing Telegram node (the one with name **`sourcing request
-   messsage`**).
-2. **Text** field → set to:
-   ```
-   {{ $json.telegram_text }}
-   ```
-3. Open **"Additional Fields"** → enable **`Parse Mode`** → set to `HTML`.
-4. Open **"Additional Fields"** → enable **`Reply Markup`** (or "Keyboard / Reply
-   Markup" depending on your n8n version) → set to:
-   ```
-   {{ $json.reply_markup }}
-   ```
-   (it's a JSON string already, n8n's Telegram node will pass it through.)
-5. Save.
+1. Right-click the existing **`sourcing request messsage`** node.
+2. Click **Disable** (or Delete if you prefer).
 
-That's the notification side done.
+The other branches (CRM sheet update, the second Telegram node "Send a text
+message") keep working as before.
 
 ## 3. Build the second workflow — callback handler
 
@@ -78,6 +80,9 @@ This is the part that responds when you tap a button.
    ```
    https://raw.githubusercontent.com/Slowz942/DASCHBOARD-RESA-LP2P/main/n8n/callback-handler.js
    ```
+   The callback handler doesn't need the bot token — its outputs are sent
+   via the standard Telegram nodes downstream (which already have the
+   credential configured).
 5. Add a **Telegram** node, **`sendMessage`**:
    - **Chat ID:** `={{ $json.chat_id }}`
    - **Text:** `={{ $json.telegram_text }}`
