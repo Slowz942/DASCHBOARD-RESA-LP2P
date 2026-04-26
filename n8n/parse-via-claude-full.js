@@ -91,9 +91,15 @@ for (const msg of messages) {
   const content = (msg.content || '').trim();
   if (!content) continue;
 
+  // Easy to change here if your account has a different model alias available.
+  // Other valid options: 'claude-haiku-4-5', 'claude-3-5-haiku-latest', 'claude-3-5-haiku-20241022'.
+  const MODEL = 'claude-haiku-4-5';
+
   let listings = [];
+  let resp;
+  let apiErrorDetail = null;
   try {
-    const resp = await this.helpers.httpRequest({
+    resp = await this.helpers.httpRequest({
       method: 'POST',
       url: 'https://api.anthropic.com/v1/messages',
       headers: {
@@ -102,22 +108,48 @@ for (const msg of messages) {
         'content-type': 'application/json',
       },
       body: {
-        model: 'claude-haiku-4-6',
+        model: MODEL,
         max_tokens: 2048,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content }],
       },
       json: true,
+      // Don't throw on non-2xx — we want to inspect the error body
+      returnFullResponse: false,
     });
-
-    const text = resp?.content?.[0]?.text || '[]';
-    const cleaned = text
-      .replace(/^\s*```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/i, '')
-      .trim();
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed)) listings = parsed;
   } catch (err) {
+    apiErrorDetail = 'HTTP ' + (err.message || String(err));
+    if (err.response?.body) {
+      apiErrorDetail += ' | body=' + JSON.stringify(err.response.body).substring(0, 400);
+    }
+  }
+
+  // If the response doesn't have the expected content array, treat it as an API error
+  // and surface it as a row instead of silently dropping the listing.
+  if (!apiErrorDetail && (!resp || !Array.isArray(resp.content) || resp.content.length === 0)) {
+    apiErrorDetail = 'Unexpected Anthropic response shape: ' + JSON.stringify(resp).substring(0, 400);
+  }
+
+  if (!apiErrorDetail) {
+    try {
+      const text = resp.content[0]?.text || '[]';
+      const cleaned = text
+        .replace(/^\s*```(?:json)?\s*/i, '')
+        .replace(/\s*```\s*$/i, '')
+        .trim();
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        listings = parsed;
+      } else {
+        apiErrorDetail = 'Claude returned non-array: ' + cleaned.substring(0, 200);
+      }
+    } catch (err) {
+      apiErrorDetail = 'JSON.parse failed on Claude output: ' + (err.message || String(err)) +
+        ' | raw=' + (resp?.content?.[0]?.text || '').substring(0, 200);
+    }
+  }
+
+  if (apiErrorDetail) {
     out.push({
       json: {
         seller_handle: msg.author || '',
@@ -130,7 +162,7 @@ for (const msg of messages) {
         price_per_unit: 0,
         price_total: null,
         block: null,
-        notes: 'Claude parse error: ' + (err.message || String(err)),
+        notes: apiErrorDetail,
         message_id: msg.id || '',
         listing_id: (msg.id || '') + '_err',
         raw_message: content,
@@ -141,7 +173,31 @@ for (const msg of messages) {
     continue;
   }
 
-  if (listings.length === 0) continue;
+  // Empty list = LLM judged this message had no valid listing. Emit a "no_listing"
+  // row so we at least see the message in the sheet (helpful for tuning the prompt).
+  if (listings.length === 0) {
+    out.push({
+      json: {
+        seller_handle: msg.author || '',
+        seller_id: msg.authorId || '',
+        artist: 'NO_LISTING',
+        event_date_iso: null,
+        event_label: '',
+        category: 'NC',
+        quantity: 1,
+        price_per_unit: 0,
+        price_total: null,
+        block: null,
+        notes: 'Claude returned empty array',
+        message_id: msg.id || '',
+        listing_id: (msg.id || '') + '_empty',
+        raw_message: content,
+        posted_at: msg.timestamp || '',
+        scraped_at: data.scraped_at || new Date().toISOString(),
+      },
+    });
+    continue;
+  }
 
   listings.forEach((listing, idx) => {
     out.push({
