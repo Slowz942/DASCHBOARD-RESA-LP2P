@@ -330,7 +330,7 @@ const top = allMatches.slice(0, MAX_OPTIONS);
 const escHtml = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const NUMS = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
 
-let text  = '🎫 <b>Nouvelle demande</b>\n';
+let text  = '📨 <b>Nouvelle demande</b>\n';
 text += '━━━━━━━━━━━━━━━━━━━\n';
 text += `👤 ${escHtml(demand.client)}`;
 if (demand.instagram) text += ` <code>${escHtml(demand.instagram)}</code>`;

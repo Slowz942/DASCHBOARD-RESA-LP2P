@@ -233,15 +233,31 @@ const demandHash = parts.slice(3).join(':');
 const msgText = cb?.message?.text || cb?.message?.caption || '';
 
 function parseDemandFromMessage(t){
+    // Extract by emoji-prefixed lines. We look for the FIRST line per emoji
+    // that doesn't match a title/header word, so changes to the heading
+    // don't poison the parsed fields.
     const out={};
-    // Extract by emoji-prefixed lines
-    const m = (re) => { const x = t.match(re); return x ? x[1].trim() : ''; };
-    out.client    = m(/👤\s*([^\n]+?)(?:\s*<code>|\n|$)/);
-    out.instagram = m(/<code>([^<]+)<\/code>/) || m(/\(@[^)]+\)/);
-    out.artist    = m(/🎤\s*<b>([^<]+)<\/b>/) || m(/🎤\s*([^\n]+)/);
-    out.dateDisp  = m(/📅\s*([^\n]+)/);
-    out.cat       = m(/🎫\s*([^\n]+)/) || 'NC';
-    out.places    = parseInt(m(/📍\s*(\d+)/) || '1');
+    const lines = (t || '').split('\n');
+    const findLine = (emoji, skipPattern) => {
+        for (const line of lines) {
+            const m = line.match(new RegExp(emoji + '\\s+(.+?)\\s*$'));
+            if (!m) continue;
+            const val = m[1].trim();
+            if (skipPattern && skipPattern.test(val)) continue;
+            return val;
+        }
+        return '';
+    };
+    out.client    = findLine('👤');
+    // Instagram handle is appended to the client line as @handle (or in <code>)
+    const ig = (t.match(/@[a-zA-Z0-9_.]+/) || [])[0] || '';
+    out.instagram = ig;
+    if (ig) out.client = out.client.replace(ig, '').trim();
+    out.artist    = findLine('🎤', /^Nouvelle/i);
+    out.dateDisp  = findLine('📅');
+    out.cat       = findLine('🎫', /^Nouvelle/i) || 'NC';
+    const placesLine = findLine('📍');
+    out.places    = parseInt((placesLine.match(/\d+/) || ['1'])[0]);
     return out;
 }
 
