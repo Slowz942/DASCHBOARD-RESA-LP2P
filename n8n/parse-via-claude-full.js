@@ -1,12 +1,17 @@
 /**
  * n8n Code node — runs once per webhook invocation.
- * SELF-CONTAINED: system prompt is inlined below. Just paste this whole file
- * into the Code node and you're done — no placeholder to replace.
  *
- * Pre-reqs in n8n:
- *   - Settings → Variables → add ANTHROPIC_API_KEY = your key from
- *     https://console.anthropic.com/settings/keys
+ * EDIT JUST ONE LINE: replace PASTE_YOUR_ANTHROPIC_KEY_HERE below with your
+ * actual key from https://console.anthropic.com/settings/keys. Then paste
+ * the entire file into the Code node.
  */
+
+// >>> EDIT THIS ONE LINE WITH YOUR ANTHROPIC API KEY (starts with sk-ant-) <<<
+const ANTHROPIC_API_KEY = 'PASTE_YOUR_ANTHROPIC_KEY_HERE';
+
+// Easy to change if your account has a different model alias available.
+// Other valid options: 'claude-3-5-haiku-latest', 'claude-3-5-haiku-20241022'.
+const MODEL = 'claude-haiku-4-5';
 
 const SYSTEM_PROMPT = `You are a parser for WTS (Want To Sell) ticket posts on Discord, written in French, English, or a mix. Given the message content, extract every individual ticket listing into a JSON array. Each entry represents one (artist, date, category, quantity, price) tuple.
 
@@ -75,6 +80,10 @@ Output: [{"artist":"SOLIDAYS","event_date_iso":null,"event_label":"pass 3J","cat
 
 Now extract listings from the message that follows. Output ONLY the JSON array.`;
 
+if (ANTHROPIC_API_KEY === 'PASTE_YOUR_ANTHROPIC_KEY_HERE') {
+  throw new Error('Anthropic API key not set. Edit the ANTHROPIC_API_KEY constant at the top of the Code node.');
+}
+
 const out = [];
 const data = $input.first().json;
 
@@ -82,18 +91,9 @@ const data = $input.first().json;
 const messages = Array.isArray(data.messages) ? data.messages : [];
 if (messages.length === 0) return out;
 
-const apiKey = $env.ANTHROPIC_API_KEY;
-if (!apiKey) {
-  throw new Error('ANTHROPIC_API_KEY env var is not set in n8n. Settings → Variables → add it.');
-}
-
 for (const msg of messages) {
   const content = (msg.content || '').trim();
   if (!content) continue;
-
-  // Easy to change here if your account has a different model alias available.
-  // Other valid options: 'claude-haiku-4-5', 'claude-3-5-haiku-latest', 'claude-3-5-haiku-20241022'.
-  const MODEL = 'claude-haiku-4-5';
 
   let listings = [];
   let resp;
@@ -103,7 +103,7 @@ for (const msg of messages) {
       method: 'POST',
       url: 'https://api.anthropic.com/v1/messages',
       headers: {
-        'x-api-key': apiKey,
+        'x-api-key': ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
