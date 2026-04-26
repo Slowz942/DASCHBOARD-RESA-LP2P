@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LP2P · Discord WTS scraper
 // @namespace    lp2p
-// @version      0.1.0
+// @version      0.1.1
 // @description  Forwards new WTS posts in your community's #wts channel to your n8n webhook for sourcing.
 // @author       LP2P
 // @match        https://discord.com/channels/1182738991943008387/1201954119804264458*
@@ -102,8 +102,14 @@
 
             // Content lives in an element with id starting with "message-content-<id>"
             const contentEl = li.querySelector('[id^="message-content-' + id + '"]');
-            const content = (contentEl?.innerText || '').trim();
+            let content = (contentEl?.innerText || '').trim();
             if (!content) return null; // skip embeds-only / system messages
+            // Strip Discord's "(edited)" indicator + the timestamp tooltip text that
+            // gets concatenated into innerText, e.g. "(edited)\nSunday, April 26, 2026 at 4:57 PM"
+            content = content
+                .replace(/\s*\(edited\)[\s\S]*$/i, '')
+                .trim();
+            if (!content) return null;
 
             // Author header: only the first message in a group renders the username.
             // Walk back through previous siblings until we find one with a header.
