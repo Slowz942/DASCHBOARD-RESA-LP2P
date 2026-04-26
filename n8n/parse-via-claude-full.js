@@ -131,8 +131,6 @@ for (const msg of messages) {
   let resp;
   let apiErrorDetail = null;
   try {
-    // returnFullResponse + simple:false → don't throw on non-2xx, give us the
-    // full { statusCode, body, headers } so we can read Anthropic's error JSON.
     resp = await this.helpers.httpRequest({
       method: 'POST',
       url: 'https://api.anthropic.com/v1/messages',
@@ -148,24 +146,31 @@ for (const msg of messages) {
         messages: [{ role: 'user', content }],
       },
       json: true,
-      returnFullResponse: true,
-      simple: false,
     });
-    // resp is now { statusCode, body, headers }
-    if (resp?.statusCode && resp.statusCode >= 400) {
-      apiErrorDetail =
-        'HTTP ' + resp.statusCode + ' from Anthropic | model=' + MODEL +
-        ' | body=' + (typeof resp.body === 'string' ? resp.body : JSON.stringify(resp.body)).substring(0, 600);
-    } else {
-      // Unwrap to the body so the rest of the code stays the same
-      resp = resp?.body || resp;
-    }
   } catch (err) {
-    apiErrorDetail = 'HTTP exception: ' + (err.message || String(err));
-    const body = err.response?.body || err.cause?.response?.body;
-    if (body) {
-      apiErrorDetail += ' | body=' + (typeof body === 'string' ? body : JSON.stringify(body)).substring(0, 600);
-    }
+    // Surface every plausible location an HTTP client might park the response
+    // body. n8n has shipped both got and axios under the hood across versions
+    // and the error shape differs each time.
+    const dig = (e) => {
+      if (!e) return null;
+      const candidates = [
+        e?.response?.body, e?.response?.data, e?.response?.text,
+        e?.cause?.response?.body, e?.cause?.response?.data,
+        e?.body, e?.data, e?.responseBody,
+        e?.context?.body, e?.context?.data,
+      ];
+      for (const c of candidates) {
+        if (c !== undefined && c !== null && c !== '') return c;
+      }
+      return null;
+    };
+    const body = dig(err);
+    apiErrorDetail =
+      'HTTP exception | model=' + MODEL +
+      ' | message=' + (err?.message || String(err)).substring(0, 200) +
+      ' | err_keys=' + Object.keys(err || {}).join(',') +
+      ' | status=' + (err?.statusCode || err?.response?.statusCode || err?.cause?.statusCode || 'n/a') +
+      ' | body=' + (body ? (typeof body === 'string' ? body : JSON.stringify(body)).substring(0, 800) : '(no body)');
   }
 
   // If the response doesn't have the expected content array, treat it as an API error
