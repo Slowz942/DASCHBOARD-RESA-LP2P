@@ -87,9 +87,38 @@ if (ANTHROPIC_API_KEY === 'PASTE_YOUR_ANTHROPIC_KEY_HERE') {
 const out = [];
 const data = $input.first().json;
 
+// n8n's Webhook node wraps the POST body under `body`. Fall back to top-level
+// in case the user wires this Code node directly to mock data without the
+// webhook wrapper.
+const payload = (data && typeof data.body === 'object' && data.body) ? data.body : data;
+
 // Webhook payload: { source, channel_id, scraped_at, messages: [{ id, author, authorId, content, timestamp }, ...] }
-const messages = Array.isArray(data.messages) ? data.messages : [];
-if (messages.length === 0) return out;
+const messages = Array.isArray(payload.messages) ? payload.messages : [];
+if (messages.length === 0) {
+  // Surface the actual input shape so it's obvious what went wrong instead of
+  // silently producing nothing.
+  return [{
+    json: {
+      seller_handle: '',
+      seller_id: '',
+      artist: 'NO_MESSAGES_IN_INPUT',
+      event_date_iso: null,
+      event_label: '',
+      category: 'NC',
+      quantity: 0,
+      price_per_unit: 0,
+      price_total: null,
+      block: null,
+      notes: 'Input had no messages array. Top-level keys: ' + Object.keys(data || {}).join(', ') +
+             '; body keys: ' + (data && data.body ? Object.keys(data.body).join(', ') : '(no body)'),
+      message_id: '',
+      listing_id: 'no_messages_' + Date.now(),
+      raw_message: JSON.stringify(data).substring(0, 400),
+      posted_at: '',
+      scraped_at: new Date().toISOString(),
+    },
+  }];
+}
 
 for (const msg of messages) {
   const content = (msg.content || '').trim();
@@ -167,7 +196,7 @@ for (const msg of messages) {
         listing_id: (msg.id || '') + '_err',
         raw_message: content,
         posted_at: msg.timestamp || '',
-        scraped_at: data.scraped_at || new Date().toISOString(),
+        scraped_at: payload.scraped_at || new Date().toISOString(),
       },
     });
     continue;
@@ -193,7 +222,7 @@ for (const msg of messages) {
         listing_id: (msg.id || '') + '_empty',
         raw_message: content,
         posted_at: msg.timestamp || '',
-        scraped_at: data.scraped_at || new Date().toISOString(),
+        scraped_at: payload.scraped_at || new Date().toISOString(),
       },
     });
     continue;
@@ -217,7 +246,7 @@ for (const msg of messages) {
         listing_id: (msg.id || '') + '_' + idx,
         raw_message: content,
         posted_at: msg.timestamp || '',
-        scraped_at: data.scraped_at || new Date().toISOString(),
+        scraped_at: payload.scraped_at || new Date().toISOString(),
       },
     });
   });
