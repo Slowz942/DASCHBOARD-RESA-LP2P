@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LP2P · Discord WTS scraper
 // @namespace    lp2p
-// @version      0.1.1
+// @version      0.1.2
 // @description  Forwards new WTS posts in your community's #wts channel to your n8n webhook for sourcing.
 // @author       LP2P
 // @match        https://discord.com/channels/1182738991943008387/1201954119804264458*
@@ -9,6 +9,10 @@
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
 // @grant        GM_xmlhttpRequest
+// @connect      n8n.cloud
+// @connect      app.n8n.cloud
+// @connect      webhook.site
+// @connect      *
 // @run-at       document-idle
 // @noframes
 // ==/UserScript==
