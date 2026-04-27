@@ -331,6 +331,19 @@ async function fetchDiscordListings(){
 
 // ============== match scoring (port of dashboard findMatches) ==============
 
+// Same date as the demand? Returns true when:
+//   - demand has no date (caller wants any date), OR
+//   - demand has month+day and item has the exact same month+day, OR
+//   - demand has only a month and item has the same month (any day)
+// Returns false when item has no date OR item's date is different.
+function isSameDateAsDemand(item, m){
+    if(!m.dateMonth) return true;
+    if(!item.dateMonth) return false;
+    if(item.dateMonth !== m.dateMonth) return false;
+    if(m.dateDay && item.dateDay && item.dateDay !== m.dateDay) return false;
+    return true;
+}
+
 function findMatches(demand, inventory, discord){
     const m = demandMeta(demand);
     if(!m.artist || m.artist==='NC') return [];
@@ -367,7 +380,12 @@ function findMatches(demand, inventory, discord){
         if(!it.prixAchat) score-=2;
         out.push({...it,source:'discord',score});
     });
-    out.sort((a,b)=>b.score-a.score);
+    // Tag with date relevance, then sort: same-date first, score second.
+    out.forEach(o => { o.dateMatch = isSameDateAsDemand(o, m); });
+    out.sort((a,b) => {
+        if(a.dateMatch !== b.dateMatch) return (b.dateMatch?1:0) - (a.dateMatch?1:0);
+        return b.score - a.score;
+    });
     return out;
 }
 
@@ -424,8 +442,22 @@ let demandHash = '';
 if (top.length === 0) {
     text += '\n❌ <i>Aucune option disponible (ni stock, ni Discord).</i>';
 } else {
-    text += `\n🔍 <b>${top.length} option${top.length>1?'s':''}:</b>\n\n`;
+    const sameN  = top.filter(o => o.dateMatch).length;
+    const otherN = top.length - sameN;
+    const demandM = demandMeta(demand);
+    let headerLabel;
+    if (demandM.dateMonth && sameN && otherN) headerLabel = `${top.length} options (${sameN} même date, ${otherN} autres):`;
+    else if (demandM.dateMonth && sameN)      headerLabel = `${sameN} option${sameN>1?'s':''} (même date):`;
+    else if (demandM.dateMonth && otherN)     headerLabel = `${otherN} option${otherN>1?'s':''} (autres dates) :`;
+    else                                       headerLabel = `${top.length} option${top.length>1?'s':''}:`;
+    text += `\n🔍 <b>${headerLabel}</b>\n\n`;
+
+    let dividerPrinted = false;
     top.forEach((mt, i) => {
+        if (!mt.dateMatch && !dividerPrinted && demandM.dateMonth) {
+            text += `— <i>Autres dates disponibles</i> —\n\n`;
+            dividerPrinted = true;
+        }
         const sugg = suggestedSellPrice(mt);
         const benef = sugg - (mt.prixAchat || 0);
         const pct = mt.prixAchat ? ((benef / mt.prixAchat) * 100).toFixed(0) : '?';

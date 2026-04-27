@@ -193,6 +193,11 @@
         .src-discord{background:rgba(88,101,242,.14);color:#a5b4fc;border:1px solid rgba(88,101,242,.40)}
         .mi-seller{font-size:.68rem;color:#a5b4fc;font-family:'Courier New',monospace;margin-left:6px}
         .mi-posted{font-size:.62rem;color:var(--text3);margin-left:8px;font-style:italic}
+        .date-pill{display:inline-block;font-size:.6rem;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.5px;margin-right:8px;vertical-align:middle}
+        .date-same{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.35)}
+        .date-other{background:rgba(251,191,36,.10);color:#fbbf24;border:1px solid rgba(251,191,36,.30)}
+        .match-divider{font-size:.66rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;text-align:center;margin:8px 0;padding:6px 0;border-top:1px dashed rgba(255,255,255,.06);border-bottom:1px dashed rgba(255,255,255,.06)}
+        .match-item.is-other-date{opacity:.78}
         .match-item.is-discord{background:linear-gradient(180deg,rgba(88,101,242,.05),var(--surface2));border-color:rgba(88,101,242,.18)}
         .mi-actions{display:flex;gap:6px}
         .mi-btn{padding:5px 12px;border-radius:6px;font-size:.72rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface3);color:var(--text2);font-family:'Inter',sans-serif;transition:all .15s}
@@ -872,8 +877,25 @@ function findMatches(d){
         if(!it.prixAchat) score-=2;
         out.push({...it,source:'discord',score});
     });
-    out.sort((a,b)=>b.score-a.score);
+    // Same-date matches first, then by score
+    out.forEach(o=>{ o.dateMatch = isSameDateAsDemand(o, m); });
+    out.sort((a,b)=>{
+        if(a.dateMatch !== b.dateMatch) return (b.dateMatch?1:0) - (a.dateMatch?1:0);
+        return b.score - a.score;
+    });
+    out._demandMeta = m; // expose to renderer so it can decide on dividers
     return dedupeMatches(out);
+}
+
+// Same date as the demand? Returns false only when item HAS a date that
+// disagrees with the demand's date — items with no date stay in the
+// "other" pile so they don't push real same-date matches off the top.
+function isSameDateAsDemand(item, m){
+    if(!m.dateMonth) return true;
+    if(!item.dateMonth) return false;
+    if(item.dateMonth !== m.dateMonth) return false;
+    if(m.dateDay && item.dateDay && item.dateDay !== m.dateDay) return false;
+    return true;
 }
 
 // Drop visually identical matches
@@ -997,13 +1019,15 @@ function render(){
         // expandable match-row under the demand
         let expandHtml='';
         if(expandedDemand===ri && matches.length){
+            const demandHasDate = !!(matches._demandMeta && matches._demandMeta.dateMonth);
+            let dividerInserted=false;
             const items=matches.map((m,mi)=>{
                 const isDiscord=m.source==='discord';
                 const floor=Math.ceil((m.prixAchat||0)*(1+MIN_MARKUP));
                 const suggested=suggestedSellPrice(m);
                 const benef=suggested-m.prixAchat;
                 const markupPct=m.prixAchat?((benef/m.prixAchat)*100).toFixed(0):'-';
-                const bumped=suggested>m.prixVente&&m.prixVente>0; // floor kicked in (only meaningful for own stock)
+                const bumped=suggested>m.prixVente&&m.prixVente>0;
                 let sourceHtml;
                 if(isDiscord){
                     const postedLbl=formatPostedAt(m.postedAt);
@@ -1015,9 +1039,17 @@ function render(){
                               m.stockStatus==='inStock'?'<span class="stock-pill stock-in">EN STOCK</span>':
                               '<span class="source-pill src-stock">STOCK</span>';
                 }
-                return`<div class="match-item${isDiscord?' is-discord':''}">
+                const dateChip = demandHasDate
+                    ? (m.dateMatch?'<span class="date-pill date-same">✓ même date</span>':'<span class="date-pill date-other">↻ autre date</span>')
+                    : '';
+                let divider='';
+                if(demandHasDate && !m.dateMatch && !dividerInserted){
+                    divider='<div class="match-divider">— Autres dates disponibles —</div>';
+                    dividerInserted=true;
+                }
+                return divider+`<div class="match-item${isDiscord?' is-discord':''}${m.dateMatch?'':' is-other-date'}">
 <span class="score-pill">${m.score}</span>
-<div class="mi-name">${sourceHtml}${esc(m.cleanName)}</div>
+<div class="mi-name">${sourceHtml}${dateChip}${esc(m.cleanName)}</div>
 <div class="mi-price">
 ${m.prixAchat?'<span class="mi-achat">'+(isDiscord?'Vendeur ':'Achat ')+m.prixAchat.toFixed(0)+'€</span>':''}
 ${(!isDiscord && m.prixVente)?'<span class="mi-vente" '+(bumped?'style="text-decoration:line-through;opacity:.5"':'')+'>Revente '+m.prixVente.toFixed(0)+'€</span>':''}
@@ -1029,13 +1061,19 @@ ${bumped?'<span class="mi-flag" title="Prix remonte au palier minimum 30%">&uarr
 <button class="mi-btn" onclick="customPropose(${ri},${mi})">Custom €</button>
 </div>
 </div>`;}).join('');
-            const stockN=matches.filter(x=>x.source!=='discord').length;
-            const dscN=matches.filter(x=>x.source==='discord').length;
-            const headLabel=stockN&&dscN
-                ? stockN+' en stock + '+dscN+' Discord'
-                : stockN
-                    ? stockN+' item(s) en stock'
-                    : dscN+' option(s) Discord';
+            const sameN  = matches.filter(x=>x.dateMatch).length;
+            const otherN = matches.length - sameN;
+            let headLabel;
+            if(demandHasDate && sameN && otherN) headLabel = sameN+' même date + '+otherN+' autres';
+            else if(demandHasDate && sameN)      headLabel = sameN+' option'+(sameN>1?'s':'')+' (même date)';
+            else if(demandHasDate && otherN)     headLabel = otherN+' option'+(otherN>1?'s':'')+' (autres dates)';
+            else {
+                const stockN=matches.filter(x=>x.source!=='discord').length;
+                const dscN=matches.filter(x=>x.source==='discord').length;
+                headLabel = stockN&&dscN ? stockN+' en stock + '+dscN+' Discord'
+                          : stockN ? stockN+' item(s) en stock'
+                          : dscN+' option(s) Discord';
+            }
             expandHtml=`<tr class="match-row"><td colspan="11"><div class="match-panel"><div class="match-panel-head">&#128200; ${headLabel} pour ${esc(d.artist)}</div>${items}</div></td></tr>`;
         }
         return rowHtml+expandHtml;
