@@ -1394,6 +1394,9 @@ async function syncTelegram(){
             if(artist==='CÉLINE DION')artist='CELINE DION';
             if(artist==='AYA'&&!evUp.includes('NAKAMURA'))artist='AYA NAKAMURA';
             if(!artist) artist=(ev||'').split('/')[0].split(' ').slice(0,3).join(' ').toUpperCase().trim();
+            // Run through the alias map so 'CELINE' / 'BRUNO' / 'AYA' / etc.
+            // resolve to the canonical full name before storing in the demand.
+            artist = normalizeArtist(artist);
             // Category: prefer explicit Categorie column, fall back to regex over event description
             let cat=(catFromSheet||'').trim();
             if(!cat||cat==='—'||cat.toLowerCase()==='nc'){
