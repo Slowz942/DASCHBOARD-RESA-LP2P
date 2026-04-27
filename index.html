@@ -131,6 +131,7 @@
         .src-other{background:var(--surface3);color:var(--text3)}
         .date-main{font-weight:600;color:var(--text)}
         .date-sub{font-size:.7rem;color:var(--text3)}
+        .event-text{font-size:.78rem;color:var(--text2);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
         .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;font-weight:500;padding:4px 10px;border-radius:20px}
         .st-new{background:rgba(220,38,38,.1);color:#f87171}
@@ -339,9 +340,10 @@
                     <thead><tr>
                         <th onclick="doSort('client')">Client</th>
                         <th onclick="doSort('artist')">Artiste</th>
-                        <th onclick="doSort('dateEvent')">Evenement</th>
-                        <th>Places</th>
+                        <th>Event</th>
+                        <th onclick="doSort('dateEvent')">Date</th>
                         <th>Categorie</th>
+                        <th>Places</th>
                         <th>Source</th>
                         <th onclick="doSort('dateMsg')">Recu le</th>
                         <th>Stock</th>
@@ -878,9 +880,10 @@ function render(){
         const rowHtml=`<tr ondblclick="editDemand(${ri})">
 <td><div class="client-cell"><div class="avatar" style="background:${avatarBg(d.artist)}">${initials(d.client)}</div><div><div class="client-name">${esc(d.client.split('(')[0].trim())}</div><div class="client-ig">${esc(d.client.match(/\(@?\S+\)/)?d.client.match(/\(@?\S+\)/)[0]:'')}</div></div></div></td>
 <td><span class="tag ${tagClass(d.artist)}">${esc(d.artist)}</span></td>
+<td><div class="event-text" title="${esc(d.notes||'')}">${esc((d.notes||'').substring(0,60))}${(d.notes||'').length>60?'…':''}</div></td>
 <td><div class="date-main">${esc(d.dateDisp||d.dateEvent||'NC')}</div></td>
-<td><span class="places-num">${esc(d.places)}</span></td>
 <td><span class="cat-tag">${esc(d.cat||'NC')}</span></td>
+<td><span class="places-num">${esc(d.places)}</span></td>
 <td><span class="source-tag ${srcC[d.source]||'src-other'}">${srcL[d.source]||esc(d.source)||'?'}</span></td>
 <td><span class="date-sub">${esc(d.dateMsg||'')}</span></td>
 <td>${mCell}</td>
@@ -931,7 +934,7 @@ ${bumped?'<span class="mi-flag" title="Prix remonte au palier minimum 30%">&uarr
                 : stockN
                     ? stockN+' item(s) en stock'
                     : dscN+' option(s) Discord';
-            expandHtml=`<tr class="match-row"><td colspan="10"><div class="match-panel"><div class="match-panel-head">&#128200; ${headLabel} pour ${esc(d.artist)}</div>${items}</div></td></tr>`;
+            expandHtml=`<tr class="match-row"><td colspan="11"><div class="match-panel"><div class="match-panel-head">&#128200; ${headLabel} pour ${esc(d.artist)}</div>${items}</div></td></tr>`;
         }
         return rowHtml+expandHtml;
     }).join('');
@@ -1391,8 +1394,8 @@ function showToast(t,s){const to=document.getElementById('toast');document.getEl
 
 // ===== EXPORT =====
 function exportCSV(){
-    let csv='Client,Artiste,Date,Places,Categorie,Source,Recu le,Statut,Notes\n';
-    demands.forEach(d=>{csv+=`"${d.client}","${d.artist}","${d.dateDisp||d.dateEvent||''}","${d.places}","${d.cat||''}","${d.source}","${d.dateMsg||''}","${d.status}","${(d.notes||'').replace(/"/g,"'")}"\n`});
+    let csv='Client,Artiste,Event,Date,Categorie,Places,Source,Recu le,Statut\n';
+    demands.forEach(d=>{csv+=`"${d.client}","${d.artist}","${(d.notes||'').replace(/"/g,"'")}","${d.dateDisp||d.dateEvent||''}","${d.cat||''}","${d.places}","${d.source}","${d.dateMsg||''}","${d.status}"\n`});
     const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='demandes_lesplaces2paris.csv';a.click();URL.revokeObjectURL(url);
 }
 function exportSalesCSV(){
