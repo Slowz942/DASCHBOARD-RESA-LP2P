@@ -173,6 +173,17 @@ function suggestedSellPrice(m){
     const floor=Math.ceil(achat*(1+MIN_MARKUP));
     return Math.max(m.prixVente||0,floor);
 }
+function dedupeMatches(arr){
+    const seen=new Set();
+    const out=[];
+    for(const m of arr){
+        const id=[m.source,m.seller||m.cleanName||'',m.cat||'',m.qty||'',m.prixAchat||'',m.dateLabel||m.eventDateIso||''].join('|');
+        if(seen.has(id)) continue;
+        seen.add(id);
+        out.push(m);
+    }
+    return out;
+}
 async function fetchInventory(){
     if(APPS_SCRIPT_URL){
         const r = await this.helpers.httpRequest({ method:'GET', url: APPS_SCRIPT_URL+'?t='+Date.now(), json:true });
@@ -313,7 +324,7 @@ const all = [];
 inventory.forEach(it=>{ if(!it.available||it.artist!==m.artist) return; if(!catAccepts(it)) return; let sc=10; if(it.cat===m.cat) sc+=15; else if(m.catNC) sc+=3; else if(looseCatMatch(m.cat,it.cat)) sc+=8; if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){sc+=6; if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) sc+=8;} if(!it.prixAchat) sc-=2; if(it.stockStatus==='inStock') sc+=5; all.push({...it,source:'stock',score:sc}); });
 discord.forEach(it=>{ if(!it.available||it.artist!==m.artist) return; if(!catAccepts(it)) return; let sc=8; if(it.cat===m.cat) sc+=15; else if(m.catNC) sc+=3; else if(looseCatMatch(m.cat,it.cat)) sc+=8; if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){sc+=6; if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) sc+=8;} if(!it.prixAchat) sc-=2; all.push({...it,source:'discord',score:sc}); });
 all.sort((a,b)=>b.score-a.score);
-const top = all.slice(0, MAX_OPTIONS);
+const top = dedupeMatches(all).slice(0, MAX_OPTIONS);
 const chosen = top[idx];
 
 if (!chosen) {

@@ -192,6 +192,43 @@ function suggestedSellPrice(m){
     return Math.max(sheetPrice,floor);
 }
 
+// Drop visually identical matches: same seller (or same stock cleanName),
+// same cat, same qty, same price, same date label.
+function dedupeMatches(arr){
+    const seen=new Set();
+    const out=[];
+    for(const m of arr){
+        const id=[
+            m.source,
+            m.seller || m.cleanName || '',
+            m.cat || '',
+            m.qty || '',
+            m.prixAchat || '',
+            m.dateLabel || m.eventDateIso || '',
+        ].join('|');
+        if(seen.has(id)) continue;
+        seen.add(id);
+        out.push(m);
+    }
+    return out;
+}
+
+// Human-friendly relative time: "il y a 2h" / "hier" / "il y a 3j" / "le 26/04"
+function formatPostedAt(iso){
+    if(!iso) return '';
+    const d=new Date(iso);
+    if(isNaN(d.getTime())) return '';
+    const diffH=Math.floor((Date.now()-d.getTime())/3600000);
+    if(diffH<1) return 'il y a <1h';
+    if(diffH<24) return 'il y a '+diffH+'h';
+    const diffD=Math.floor(diffH/24);
+    if(diffD===1) return 'hier';
+    if(diffD<7) return 'il y a '+diffD+'j';
+    const dd=String(d.getDate()).padStart(2,'0');
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    return 'le '+dd+'/'+mm;
+}
+
 // ============== fetch helpers ==============
 
 async function fetchInventoryViaAppsScript(){
@@ -358,7 +395,7 @@ try {
     discord = await fetchDiscordListings.call(this);
 } catch(e){ console.error('discord fetch failed', e.message||e); }
 
-const allMatches = findMatches(demand, inventory, discord);
+const allMatches = dedupeMatches(findMatches(demand, inventory, discord));
 const top = allMatches.slice(0, MAX_OPTIONS);
 
 // ============== build Telegram message ==============
@@ -390,7 +427,9 @@ if (top.length === 0) {
         const pct = mt.prixAchat ? ((benef / mt.prixAchat) * 100).toFixed(0) : '?';
         const num = NUMS[i] || ((i+1) + '.');
         if (mt.source === 'discord') {
-            text += `${num} <b>DISCORD</b> · @${escHtml(mt.seller || '?')}\n`;
+            const posted = formatPostedAt(mt.postedAt);
+            const ageTag = posted ? ' · <i>posté ' + posted + '</i>' : '';
+            text += `${num} <b>DISCORD</b> · @${escHtml(mt.seller || '?')}${ageTag}\n`;
             text += `   ${escHtml(mt.cleanName)}\n`;
             text += `   Vendeur ${mt.prixAchat}€ → propose <b>${sugg}€</b> (+${pct}%)\n\n`;
         } else {
