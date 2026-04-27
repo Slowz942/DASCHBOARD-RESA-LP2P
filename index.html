@@ -763,11 +763,33 @@ function parseFullCSV(text){
     return rows.map(r=>r.map(c=>c.trim()));
 }
 
+// Detect "no preference" category phrases (n'importe, peu importe, pas de
+// preference, tout, libre, etc.) and map them to NC so they accept all cats.
+function isNoPrefCat(cat){
+    if(!cat) return true;
+    const c=String(cat).toLowerCase().trim();
+    if(!c||c==='nc'||c==='—'||c==='-'||c==='na'||c==='n/a') return true;
+    return /n.?importe|peu importe|pas de pr[eé]f|aucun.*pr[eé]f|toute.*dispo|tout.*disp|sans pr[eé]f|libre|whatever|^any$|^all$|no preference|toute cat|toute dispo|peu m.imp/.test(c);
+}
+
+// Canonicalize a user-typed category: 'Categorie 1' / 'Catégorie 1' / 'Cat. 1' → 'CAT 1'
+function normalizeCat(cat){
+    if(isNoPrefCat(cat)) return 'NC';
+    let c=String(cat).toUpperCase().trim();
+    c = c
+        .replace(/CATÉGORIE/g,'CAT')
+        .replace(/CATEGORIE/g,'CAT')
+        .replace(/CAT\./g,'CAT')
+        .replace(/\s+/g,' ')
+        .trim();
+    return c||'NC';
+}
+
 // Extract structured fields from a demand for matching
 function demandMeta(d){
     const artist=normalizeArtist(d.artist||'');
-    const cat=(d.cat||'').toUpperCase().trim();
-    const catNC=!cat||cat==='NC';
+    const cat=normalizeCat(d.cat||'');
+    const catNC=cat==='NC';
     const nbPlaces=parseInt((d.places||'1').toString().replace(/[^\d]/g,''))||1;
     // Extract month/day from dateDisp or dateEvent
     const s=(d.dateDisp||d.dateEvent||'');
@@ -782,16 +804,24 @@ function findMatches(d){
     if(!inventory.length && !discordListings.length) return [];
     const m=demandMeta(d);
     if(!m.artist||m.artist==='NC') return [];
+    // catAccepts: when demand specifies a category, only same/loose-compatible
+    // cats pass; when demand has no preference (catNC), every category passes.
+    const catAccepts = (it) => {
+        if(m.catNC) return true;
+        if(it.cat===m.cat) return true;
+        if(looseCatMatch(m.cat,it.cat)) return true;
+        return false;
+    };
     const out=[];
     // 1. Internal inventory (your own stock)
     inventory.forEach(it=>{
         if(!it.available) return; // excludes sold (green)
         if(it.artist!==m.artist) return;
-        let score=10; // artist matched
+        if(!catAccepts(it)) return;
+        let score=10;
         if(it.cat===m.cat) score+=15;
-        else if(m.catNC||it.cat==='NC') score+=3;
+        else if(m.catNC) score+=3; // demand wants anything, item has its own cat
         else if(looseCatMatch(m.cat,it.cat)) score+=8;
-        else score-=3;
         if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){
             score+=6;
             if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) score+=8;
@@ -804,11 +834,11 @@ function findMatches(d){
     discordListings.forEach(it=>{
         if(!it.available) return;
         if(it.artist!==m.artist) return;
+        if(!catAccepts(it)) return;
         let score=8; // start slightly lower than own-stock so internal matches surface first when tied
         if(it.cat===m.cat) score+=15;
-        else if(m.catNC||it.cat==='NC') score+=3;
+        else if(m.catNC) score+=3;
         else if(looseCatMatch(m.cat,it.cat)) score+=8;
-        else score-=3;
         if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){
             score+=6;
             if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) score+=8;
@@ -821,10 +851,18 @@ function findMatches(d){
 }
 
 function looseCatMatch(a,b){
-    // "FOSSE" and "FOSSE OR" considered loosely compatible
-    const A=a||'',B=b||'';
+    // "FOSSE" and "FOSSE OR" / "FOSSES early" → loose match (both contain FOSSE)
+    // "CAT 1" and "CAT 2" → NOT a match (different specific cats)
+    // "CAT 1" and "CAT OR" → NOT a match (OR is its own tier)
+    const A=String(a||'').toUpperCase(),B=String(b||'').toUpperCase();
+    if(!A||!B) return false;
+    if(A===B) return true;
     if(A.includes('FOSSE')&&B.includes('FOSSE')) return true;
-    if(A.includes('CAT')&&B.includes('CAT')) return true;
+    // Both have a numeric CAT: must be the same number
+    const aN=A.match(/CAT\s*(\d)/), bN=B.match(/CAT\s*(\d)/);
+    if(aN&&bN) return aN[1]===bN[1];
+    // 'CAT OR' on both sides
+    if(A.includes('CAT OR')&&B.includes('CAT OR')) return true;
     return false;
 }
 

@@ -116,11 +116,32 @@ function classifyColor(hex){
     if(r>g+12&&r>b+12) return 'inStock';
     return 'unknown';
 }
-function looseCatMatch(a,b){ const A=a||'',B=b||''; if(A.includes('FOSSE')&&B.includes('FOSSE')) return true; if(A.includes('CAT')&&B.includes('CAT')) return true; return false; }
+function looseCatMatch(a,b){
+    const A=String(a||'').toUpperCase(),B=String(b||'').toUpperCase();
+    if(!A||!B) return false;
+    if(A===B) return true;
+    if(A.includes('FOSSE')&&B.includes('FOSSE')) return true;
+    const aN=A.match(/CAT\s*(\d)/), bN=B.match(/CAT\s*(\d)/);
+    if(aN&&bN) return aN[1]===bN[1];
+    if(A.includes('CAT OR')&&B.includes('CAT OR')) return true;
+    return false;
+}
+function isNoPrefCat(cat){
+    if(!cat) return true;
+    const c=String(cat).toLowerCase().trim();
+    if(!c||c==='nc'||c==='—'||c==='-'||c==='na'||c==='n/a') return true;
+    return /n.?importe|peu importe|pas de pr[eé]f|aucun.*pr[eé]f|toute.*dispo|tout.*disp|sans pr[eé]f|libre|whatever|^any$|^all$|no preference|toute cat|peu m.imp/.test(c);
+}
+function normalizeCat(cat){
+    if(isNoPrefCat(cat)) return 'NC';
+    let c=String(cat).toUpperCase().trim();
+    c = c.replace(/CATÉGORIE/g,'CAT').replace(/CATEGORIE/g,'CAT').replace(/CAT\./g,'CAT').replace(/\s+/g,' ').trim();
+    return c||'NC';
+}
 function demandMeta(d){
     const artist=normalizeArtist(d.artist||'');
-    const cat=(d.cat||'').toUpperCase().trim();
-    const catNC=!cat||cat==='NC';
+    const cat=normalizeCat(d.cat||'');
+    const catNC=cat==='NC';
     const nbPlaces=parseInt((d.places||'1').toString().replace(/[^\d]/g,''))||1;
     const s=(d.dateDisp||d.dateEvent||'');
     let dateMonth=null,dateDay=null;
@@ -269,9 +290,10 @@ try { inventory = await fetchInventory.call(this); } catch(e){ console.error('in
 try { discord = await fetchDiscord.call(this); } catch(e){ console.error('discord fetch failed', e.message||e); }
 
 const m = demandMeta(demand);
+const catAccepts = (it) => m.catNC || it.cat===m.cat || looseCatMatch(m.cat,it.cat);
 const all = [];
-inventory.forEach(it=>{ if(!it.available||it.artist!==m.artist) return; let sc=10; if(it.cat===m.cat) sc+=15; else if(m.catNC||it.cat==='NC') sc+=3; else if(looseCatMatch(m.cat,it.cat)) sc+=8; else sc-=3; if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){sc+=6; if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) sc+=8;} if(!it.prixAchat) sc-=2; if(it.stockStatus==='inStock') sc+=5; all.push({...it,source:'stock',score:sc}); });
-discord.forEach(it=>{ if(!it.available||it.artist!==m.artist) return; let sc=8; if(it.cat===m.cat) sc+=15; else if(m.catNC||it.cat==='NC') sc+=3; else if(looseCatMatch(m.cat,it.cat)) sc+=8; else sc-=3; if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){sc+=6; if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) sc+=8;} if(!it.prixAchat) sc-=2; all.push({...it,source:'discord',score:sc}); });
+inventory.forEach(it=>{ if(!it.available||it.artist!==m.artist) return; if(!catAccepts(it)) return; let sc=10; if(it.cat===m.cat) sc+=15; else if(m.catNC) sc+=3; else if(looseCatMatch(m.cat,it.cat)) sc+=8; if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){sc+=6; if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) sc+=8;} if(!it.prixAchat) sc-=2; if(it.stockStatus==='inStock') sc+=5; all.push({...it,source:'stock',score:sc}); });
+discord.forEach(it=>{ if(!it.available||it.artist!==m.artist) return; if(!catAccepts(it)) return; let sc=8; if(it.cat===m.cat) sc+=15; else if(m.catNC) sc+=3; else if(looseCatMatch(m.cat,it.cat)) sc+=8; if(m.dateMonth&&it.dateMonth&&m.dateMonth===it.dateMonth){sc+=6; if(m.dateDay&&it.dateDay&&m.dateDay===it.dateDay) sc+=8;} if(!it.prixAchat) sc-=2; all.push({...it,source:'discord',score:sc}); });
 all.sort((a,b)=>b.score-a.score);
 const top = all.slice(0, MAX_OPTIONS);
 const chosen = top[idx];
