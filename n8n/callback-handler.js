@@ -85,6 +85,16 @@ function parseFullCSV(text){
     if(cur.length||row.length){row.push(cur);rows.push(row);}
     return rows.map(r=>r.map(c=>c.trim()));
 }
+function inventoryTotalsToPerPlace(it){
+    if(!it) return it;
+    const qty=it.qty||1;
+    if(qty>1){
+        if(it.prixAchat) it.prixAchat=+(it.prixAchat/qty).toFixed(2);
+        if(it.prixVente) it.prixVente=+(it.prixVente/qty).toFixed(2);
+    }
+    return it;
+}
+
 function parseInvRow(nom, achat, revente, benef){
     const raw=(nom||'').replace(/\r/g,'').trim();
     if(!raw) return null;
@@ -201,6 +211,7 @@ async function fetchInventory(){
             if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
             const it=parseInvRow(nom,row.values[1],row.values[2],row.values[3]);
             if(!it) return;
+            inventoryTotalsToPerPlace(it);
             it.bgColor=row.color||''; it.stockStatus=classifyColor(row.color); it.available=(it.stockStatus!=='sold');
             out.push(it);
         });
@@ -215,7 +226,7 @@ async function fetchInventory(){
         const low=nom.toLowerCase().trim();
         if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
         const it=parseInvRow(nom,cols[1],cols[2],cols[3]);
-        if(it){ it.stockStatus='unknown'; it.available=true; out.push(it); }
+        if(it){ inventoryTotalsToPerPlace(it); it.stockStatus='unknown'; it.available=true; out.push(it); }
     });
     return out;
 }
@@ -352,10 +363,18 @@ const name = (demand.client||'').split('(')[0].trim();
 const cat = chosen.cat && chosen.cat !== 'NC' ? chosen.cat : (demand.cat||'');
 const dateLbl = demand.dateDisp || chosen.dateLabel || '';
 
-// Plain-text proposal — ready to copy-paste into IG DM.
-const proposal = `Salut ${name}! J'ai trouve pour ${demand.artist}${dateLbl?' ('+dateLbl+')':''}${cat?' en '+cat:''}. Je te la propose a ${sugg}EUR. Ca t'interesse ?`;
+// Per-place + buyer-total breakdown.
+const buyerPlaces = parseInt((demand.places||'1').toString().replace(/[^\d]/g,''))||1;
+const totalCost = chosen.prixAchat ? Math.round(chosen.prixAchat*buyerPlaces) : 0;
+const totalSell = Math.round(sugg*buyerPlaces);
+const showTot = buyerPlaces > 1;
 
-// HTML breakdown for you (the operator), with copyable proposal block.
+const priceClause = showTot
+    ? `${sugg}EUR/place soit ${totalSell}EUR pour les ${buyerPlaces} places`
+    : `${sugg}EUR`;
+
+const proposal = `Salut ${name}! J'ai trouve pour ${demand.artist}${dateLbl?' ('+dateLbl+')':''}${cat?' en '+cat:''}. Je te la propose a ${priceClause}. Ca t'interesse ?`;
+
 const escHtml = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 let summary  = '✅ <b>Option sélectionnée</b>\n';
 summary += '━━━━━━━━━━━━━━━━━━━\n';
@@ -363,7 +382,8 @@ summary += chosen.source === 'discord'
     ? `🟦 <b>DISCORD</b> · @${escHtml(chosen.seller)}\n`
     : `🟢 <b>STOCK</b>\n`;
 summary += `   ${escHtml(chosen.cleanName)}\n`;
-summary += `   ${chosen.source==='discord'?'Vendeur':'Achat'} ${chosen.prixAchat}€ → propose <b>${sugg}€</b> (+${pct}%)\n\n`;
+summary += `   ${chosen.source==='discord'?'Vendeur':'Achat'} <b>${chosen.prixAchat}€/place</b>${showTot?' (total '+totalCost+'€)':''}\n`;
+summary += `   → propose <b>${sugg}€/place</b>${showTot?' = total <b>'+totalSell+'€</b>':''} (+${pct}%)\n\n`;
 summary += `📋 <b>À envoyer au client (copy):</b>\n<code>${escHtml(proposal)}</code>`;
 
 return [{

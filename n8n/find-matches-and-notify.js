@@ -86,6 +86,19 @@ function parseFullCSV(text){
     return rows.map(r=>r.map(c=>c.trim()));
 }
 
+// Inventory's Achat/Revente columns are TOTALS for the whole listing
+// (whether x1, x2, etc.). Convert to per-place once parsed so the matcher
+// and Telegram body can render uniform per-place numbers.
+function inventoryTotalsToPerPlace(it){
+    if(!it) return it;
+    const qty = it.qty || 1;
+    if(qty>1){
+        if(it.prixAchat) it.prixAchat = +(it.prixAchat / qty).toFixed(2);
+        if(it.prixVente) it.prixVente = +(it.prixVente / qty).toFixed(2);
+    }
+    return it;
+}
+
 function parseInvRow(nom, achat, revente, benef){
     const raw=(nom||'').replace(/\r/g,'').trim();
     if(!raw) return null;
@@ -243,6 +256,7 @@ async function fetchInventoryViaAppsScript(){
         if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
         const it=parseInvRow(nom,row.values[1],row.values[2],row.values[3]);
         if(!it) return;
+        inventoryTotalsToPerPlace(it);
         it.bgColor=row.color||'';
         it.stockStatus=classifyColor(row.color);
         it.available=(it.stockStatus!=='sold');
@@ -266,6 +280,7 @@ async function fetchInventoryViaCSV(){
         if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
         const it=parseInvRow(nom,cols[1],cols[2],cols[3]);
         if(!it) return;
+        inventoryTotalsToPerPlace(it);
         it.stockStatus='unknown';
         it.available=true;
         out.push(it);
@@ -464,17 +479,24 @@ if (top.length === 0) {
         const benef = sugg - (mt.prixAchat || 0);
         const pct = mt.prixAchat ? ((benef / mt.prixAchat) * 100).toFixed(0) : '?';
         const num = NUMS[i] || ((i+1) + '.');
+        // Total = per-place × buyer's number of places (what they actually pay).
+        const buyerPlaces = parseInt((demand.places||'1').toString().replace(/[^\d]/g,''))||1;
+        const totalCost = mt.prixAchat ? Math.round(mt.prixAchat * buyerPlaces) : 0;
+        const totalSell = Math.round(sugg * buyerPlaces);
+        const showTot = buyerPlaces > 1;
         if (mt.source === 'discord') {
             const posted = formatPostedAt(mt.postedAt);
             const ageTag = posted ? ' · <i>posté ' + posted + '</i>' : '';
             text += `${num} <b>DISCORD</b> · @${escHtml(mt.seller || '?')}${ageTag}\n`;
             text += `   ${escHtml(mt.cleanName)}\n`;
-            text += `   Vendeur ${mt.prixAchat}€ → propose <b>${sugg}€</b> (+${pct}%)\n\n`;
+            text += `   Vendeur <b>${mt.prixAchat}€/place</b>${showTot?' (total '+totalCost+'€)':''}\n`;
+            text += `   → propose <b>${sugg}€/place</b>${showTot?' = total <b>'+totalSell+'€</b>':''} (+${pct}%)\n\n`;
         } else {
             const tag = mt.stockStatus === 'inStock' ? 'EN STOCK' : 'STOCK';
             text += `${num} <b>${tag}</b>\n`;
             text += `   ${escHtml(mt.cleanName)}\n`;
-            text += `   Achat ${mt.prixAchat}€ → propose <b>${sugg}€</b> (+${pct}%)\n\n`;
+            text += `   Achat <b>${mt.prixAchat}€/place</b>${showTot?' (total '+totalCost+'€)':''}\n`;
+            text += `   → propose <b>${sugg}€/place</b>${showTot?' = total <b>'+totalSell+'€</b>':''} (+${pct}%)\n\n`;
         }
     });
 

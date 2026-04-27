@@ -183,6 +183,8 @@
         .mi-vente{color:#4ade80;font-weight:700}
         .mi-suggested{color:#fff;font-weight:800;background:linear-gradient(135deg,#22c55e,#16a34a);padding:3px 10px;border-radius:6px;font-size:.78rem}
         .mi-suggested .mi-pct{opacity:.85;font-weight:600;font-size:.7rem}
+        .mi-total{font-size:.7rem;color:var(--text3);font-weight:600;margin-left:4px}
+        .mi-suggested .mi-total{color:rgba(255,255,255,.85)}
         .mi-benef{color:var(--text3);font-size:.72rem}
         .mi-flag{font-size:.66rem;color:#fbbf24;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:.5px}
         .stock-pill{display:inline-block;font-size:.58rem;padding:2px 6px;border-radius:4px;font-weight:700;letter-spacing:1px;margin-right:8px;vertical-align:middle}
@@ -540,6 +542,20 @@ function normalizeArtist(a){
     return ALIASES[up] || up;
 }
 
+// Inventory sheet stores TOTAL prices for the whole listing (Achat/Revente
+// columns mean "what I paid for the bundle" / "what I'd resell the bundle for").
+// To keep matching/display uniform with Discord (which is per-place), this
+// helper converts the totals to per-place after we've parsed qty.
+function inventoryTotalsToPerPlace(it){
+    if(!it) return it;
+    const qty = it.qty || 1;
+    if(qty>1){
+        if(it.prixAchat) it.prixAchat = +(it.prixAchat / qty).toFixed(2);
+        if(it.prixVente) it.prixVente = +(it.prixVente / qty).toFixed(2);
+    }
+    return it;
+}
+
 function parseInvRow(nom, achat, revente, benef){
     const raw=(nom||'').replace(/\r/g,'').trim();
     if(!raw) return null;
@@ -740,6 +756,7 @@ async function syncInventory(){
                 if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
                 const it=parseInvRow(nom,row.values[1],row.values[2],row.values[3]);
                 if(!it) return;
+                inventoryTotalsToPerPlace(it);
                 it.bgColor=row.color||'';
                 it.stockStatus=classifyColor(row.color);
                 // sold items are NOT available
@@ -760,6 +777,7 @@ async function syncInventory(){
                 if(!low||low==='nom'||low.includes('total')||low.includes('valeur')||low.includes('treso')||low.includes('revolut')||low.includes('paypal')||low.includes('cash')||low.includes('à sourcer')||low.includes('a sourcer')) return;
                 const it=parseInvRow(nom,cols[1],cols[2],cols[3]);
                 if(!it) return;
+                inventoryTotalsToPerPlace(it);
                 it.stockStatus='unknown';
                 it.available=true;
                 inventory.push(it);
@@ -1055,17 +1073,24 @@ function render(){
                     divider='<div class="match-divider">— Autres dates disponibles —</div>';
                     dividerInserted=true;
                 }
+                // Totals are computed against the DEMAND's number of places
+                // (what the buyer is actually paying for), not the seller's
+                // bundle qty. Both prixAchat and suggested are per-place.
+                const buyerPlaces = parseInt((d.places||'1').toString().replace(/[^\d]/g,''))||1;
+                const totalCost   = m.prixAchat ? Math.round(m.prixAchat * buyerPlaces) : 0;
+                const totalSell   = Math.round(suggested * buyerPlaces);
+                const showTotals  = buyerPlaces > 1;
+                const buyLbl  = isDiscord ? 'Vendeur' : 'Achat';
                 return divider+`<div class="match-item${isDiscord?' is-discord':''}${m.dateMatch?'':' is-other-date'}">
 <span class="score-pill">${m.score}</span>
 <div class="mi-name">${sourceHtml}${dateChip}${esc(m.cleanName)}</div>
 <div class="mi-price">
-${m.prixAchat?'<span class="mi-achat">'+(isDiscord?'Vendeur ':'Achat ')+m.prixAchat.toFixed(0)+'€</span>':''}
-${(!isDiscord && m.prixVente)?'<span class="mi-vente" '+(bumped?'style="text-decoration:line-through;opacity:.5"':'')+'>Revente '+m.prixVente.toFixed(0)+'€</span>':''}
-<span class="mi-suggested">&rarr; ${suggested}€ <span class="mi-pct">(+${markupPct}%)</span></span>
+${m.prixAchat?'<span class="mi-achat">'+buyLbl+' <b>'+m.prixAchat.toFixed(0)+'€/place</b>'+(showTotals?' <span class="mi-total">(total '+totalCost+'€ pour '+buyerPlaces+')</span>':'')+'</span>':''}
+<span class="mi-suggested">&rarr; <b>${suggested}€/place</b> <span class="mi-pct">(+${markupPct}%)</span>${showTotals?' <span class="mi-total">total '+totalSell+'€</span>':''}</span>
 ${bumped?'<span class="mi-flag" title="Prix remonte au palier minimum 30%">&uarr; palier 30%</span>':''}
 </div>
 <div class="mi-actions">
-<button class="mi-btn primary" onclick="proposeMatch(${ri},${mi})">Proposer ${suggested}€</button>
+<button class="mi-btn primary" onclick="proposeMatch(${ri},${mi})">Proposer ${suggested}€${showTotals?'/place':''}</button>
 <button class="mi-btn" onclick="customPropose(${ri},${mi})">Custom €</button>
 </div>
 </div>`;}).join('');
@@ -1206,20 +1231,26 @@ function suggestedSellPrice(m){
 }
 
 function buildProposalMessage(d,m,priceOverride){
-    let sellPrice=priceOverride!=null?priceOverride:suggestedSellPrice(m);
-    // Even with override, enforce the floor
+    // Per-place pricing throughout. Override is also per-place.
+    let pricePerPlace=priceOverride!=null?priceOverride:suggestedSellPrice(m);
     const floor=Math.ceil((m.prixAchat||0)*(1+MIN_MARKUP));
-    if(priceOverride!=null && sellPrice<floor){
-        sellPrice=floor;
-    }
-    const benef=sellPrice-m.prixAchat;
+    if(priceOverride!=null && pricePerPlace<floor) pricePerPlace=floor;
+    const buyerPlaces=parseInt((d.places||'1').toString().replace(/[^\d]/g,''))||1;
+    const totalSell=Math.round(pricePerPlace*buyerPlaces);
+    const benef=pricePerPlace-(m.prixAchat||0);
     const markupPct=m.prixAchat?((benef/m.prixAchat)*100).toFixed(0):'-';
     const name=(d.client||'').split('(')[0].trim();
     const cat=m.cat&&m.cat!=='NC'?m.cat:(d.cat||'');
     const dateLbl=d.dateDisp||d.dateEvent||m.dateLabel||'';
+    // Single-place buyers don't need the breakdown.
+    const priceClause = buyerPlaces>1
+        ? `${pricePerPlace}EUR/place soit ${totalSell}EUR pour les ${buyerPlaces} places`
+        : `${pricePerPlace}EUR`;
     return {
-        clientMsg:`Salut ${name}! J'ai trouve pour ${d.artist}${dateLbl?' ('+dateLbl+')':''}${cat?' en '+cat:''}. Je te la propose a ${sellPrice}EUR. Ca t'interesse ?`,
-        sellPrice,
+        clientMsg:`Salut ${name}! J'ai trouve pour ${d.artist}${dateLbl?' ('+dateLbl+')':''}${cat?' en '+cat:''}. Je te la propose a ${priceClause}. Ca t'interesse ?`,
+        sellPrice: pricePerPlace,
+        sellPriceTotal: totalSell,
+        buyerPlaces,
         benef,
         markupPct,
         internal:{
@@ -1229,9 +1260,12 @@ function buildProposalMessage(d,m,priceOverride){
             category:cat,
             places_requested:d.places,
             item:m.cleanName,
-            buy_price:m.prixAchat,
-            proposed_price:sellPrice,
-            expected_profit:benef,
+            buy_price_per_place:m.prixAchat,
+            buy_price_total:Math.round((m.prixAchat||0)*buyerPlaces),
+            proposed_price_per_place:pricePerPlace,
+            proposed_price_total:totalSell,
+            expected_profit_per_place:benef,
+            expected_profit_total:Math.round(benef*buyerPlaces),
             expected_profit_pct:markupPct+'%',
         }
     };
