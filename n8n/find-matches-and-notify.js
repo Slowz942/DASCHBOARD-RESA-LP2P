@@ -455,7 +455,9 @@ if (top.length === 0) {
     let dividerPrinted = false;
     top.forEach((mt, i) => {
         if (!mt.dateMatch && !dividerPrinted && demandM.dateMonth) {
-            text += `— <i>Autres dates disponibles</i> —\n\n`;
+            text += `\n━━━━━━━━━━━━━━━━━━━\n`;
+            text += `📅 <b>AUTRES DATES DISPONIBLES</b>\n`;
+            text += `━━━━━━━━━━━━━━━━━━━\n\n`;
             dividerPrinted = true;
         }
         const sugg = suggestedSellPrice(mt);
