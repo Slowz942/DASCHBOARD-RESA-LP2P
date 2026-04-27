@@ -495,14 +495,39 @@ let discordListings=[]; // parsed rows from the Sourcing Discord sheet (n8n-fed)
 const KNOWN_ARTISTS=['JUL','SCH','NINHO','PNL','BOOBA','DAMSO','ORELSAN','CELINE DION','BAD BUNNY','BADBUNNY','DAVID GUETTA','BRUNO MARS','BRUNOS MARS','AYA NAKAMURA','AYA','TAME IMPALA','BTS','CIRCOLOCO','DRAKE','TRAVIS SCOTT','GIMS','JOSMAN','THEODORA','ROMY','STROMAE','ANGELE','NEKFEU','GAZO','SOPRANO','TAYC','DADJU','NISKA','HAMZA','SDM','PLK','WERENOI','TIAKOLA','DINOS','ZIAK','THE WEEKND','WEEKND','LAMANO','LA MANO','L2B','LUIDJI','FREEZE CORLEONE','LOMEPAL','ORELSAN','FEDER','KAARIS','LACRIM','KALASH CRIMINEL'];
 const FR_MONTHS={janvier:'01',fevrier:'02','février':'02',mars:'03',avril:'04',mai:'05',juin:'06',juillet:'07',aout:'08','août':'08',septembre:'09',octobre:'10',novembre:'11',decembre:'12','décembre':'12'};
 
+// Strip diacritics + uppercase + map partials & misspellings to canonical names.
+// 'Céline' / 'Celine' / 'DION' all → 'CELINE DION' so demands and inventory
+// converge regardless of how the user typed the artist.
 function normalizeArtist(a){
     if(!a) return '';
-    let up=a.toUpperCase().trim();
-    if(up==='BADBUNNY') return 'BAD BUNNY';
-    if(up==='BRUNOS MARS') return 'BRUNO MARS';
-    if(up==='WEEKND') return 'THE WEEKND';
-    if(up==='LA MANO') return 'LAMANO';
-    return up;
+    let up = String(a).toUpperCase().trim()
+        .replace(/[ÉÈÊË]/g,'E').replace(/[ÀÁÂÃÄ]/g,'A')
+        .replace(/[ÌÍÎÏ]/g,'I').replace(/[ÒÓÔÕÖ]/g,'O')
+        .replace(/[ÙÚÛÜ]/g,'U').replace(/[Ç]/g,'C');
+    const ALIASES = {
+        // Misspellings / variants
+        'BADBUNNY':'BAD BUNNY','BRUNOS MARS':'BRUNO MARS',
+        'WEEKND':'THE WEEKND','WEEKEND':'THE WEEKND',
+        'LA MANO':'LAMANO',
+        'NEIGHBOURHOOD':'NEIGHBERHOOD','THE NEIGHBOURHOOD':'NEIGHBERHOOD',
+        'NEIGHBORHOOD':'NEIGHBERHOOD','THE NEIGHBORHOOD':'NEIGHBERHOOD',
+        // Partial names (first or last word) → canonical
+        'CELINE':'CELINE DION','DION':'CELINE DION',
+        'BRUNO':'BRUNO MARS',
+        'AYA':'AYA NAKAMURA','NAKAMURA':'AYA NAKAMURA',
+        'TAME':'TAME IMPALA','IMPALA':'TAME IMPALA',
+        'GUETTA':'DAVID GUETTA','DAVID':'DAVID GUETTA',
+        'CHARLIE':'CHARLIE PUTH','PUTH':'CHARLIE PUTH',
+        'HARRY':'HARRY STYLES','STYLES':'HARRY STYLES',
+        'ARIANA':'ARIANA GRANDE','GRANDE':'ARIANA GRANDE',
+        'PATRICK':'PATRICK BRUEL','BRUEL':'PATRICK BRUEL',
+        'STROKES':'THE STROKES',
+        'JOVI':'BON JOVI',
+        'LILY':'LILY ALLEN','ALLEN':'LILY ALLEN',
+        'IPUPA':'FALLY IPUPA','FALLY':'FALLY IPUPA',
+        'PINK PANTHERESS':'PINKPANTHERESS',
+    };
+    return ALIASES[up] || up;
 }
 
 function parseInvRow(nom, achat, revente, benef){

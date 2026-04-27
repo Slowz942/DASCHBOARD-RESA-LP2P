@@ -42,14 +42,32 @@ const FR_MONTHS = {janvier:'01','février':'02',fevrier:'02',mars:'03',avril:'04
 
 function normalizeArtist(a){
     if(!a) return '';
-    let up = String(a).toUpperCase().trim();
-    if(up==='BADBUNNY') return 'BAD BUNNY';
-    if(up==='BRUNOS MARS') return 'BRUNO MARS';
-    if(up==='WEEKND') return 'THE WEEKND';
-    if(up==='LA MANO') return 'LAMANO';
-    if(up==='CÉLINE DION') return 'CELINE DION';
-    if(up==='THE NEIGHBOURHOOD') return 'NEIGHBERHOOD';
-    return up;
+    let up = String(a).toUpperCase().trim()
+        .replace(/[ÉÈÊË]/g,'E').replace(/[ÀÁÂÃÄ]/g,'A')
+        .replace(/[ÌÍÎÏ]/g,'I').replace(/[ÒÓÔÕÖ]/g,'O')
+        .replace(/[ÙÚÛÜ]/g,'U').replace(/[Ç]/g,'C');
+    const ALIASES = {
+        'BADBUNNY':'BAD BUNNY','BRUNOS MARS':'BRUNO MARS',
+        'WEEKND':'THE WEEKND','WEEKEND':'THE WEEKND',
+        'LA MANO':'LAMANO',
+        'NEIGHBOURHOOD':'NEIGHBERHOOD','THE NEIGHBOURHOOD':'NEIGHBERHOOD',
+        'NEIGHBORHOOD':'NEIGHBERHOOD','THE NEIGHBORHOOD':'NEIGHBERHOOD',
+        'CELINE':'CELINE DION','DION':'CELINE DION',
+        'BRUNO':'BRUNO MARS',
+        'AYA':'AYA NAKAMURA','NAKAMURA':'AYA NAKAMURA',
+        'TAME':'TAME IMPALA','IMPALA':'TAME IMPALA',
+        'GUETTA':'DAVID GUETTA','DAVID':'DAVID GUETTA',
+        'CHARLIE':'CHARLIE PUTH','PUTH':'CHARLIE PUTH',
+        'HARRY':'HARRY STYLES','STYLES':'HARRY STYLES',
+        'ARIANA':'ARIANA GRANDE','GRANDE':'ARIANA GRANDE',
+        'PATRICK':'PATRICK BRUEL','BRUEL':'PATRICK BRUEL',
+        'STROKES':'THE STROKES',
+        'JOVI':'BON JOVI',
+        'LILY':'LILY ALLEN','ALLEN':'LILY ALLEN',
+        'IPUPA':'FALLY IPUPA','FALLY':'FALLY IPUPA',
+        'PINK PANTHERESS':'PINKPANTHERESS',
+    };
+    return ALIASES[up] || up;
 }
 
 function parseFullCSV(text){
