@@ -887,8 +887,12 @@ function findMatches(d){
         if(a.dateMatch !== b.dateMatch) return (b.dateMatch?1:0) - (a.dateMatch?1:0);
         return b.score - a.score;
     });
-    out._demandMeta = m; // expose to renderer so it can decide on dividers
-    return dedupeMatches(out);
+    // dedupeMatches() returns a NEW array — copy the demand-meta hint over
+    // so the renderer (which reads matches._demandMeta to decide whether to
+    // show 'same date / autre date' badges) sees it.
+    const deduped = dedupeMatches(out);
+    deduped._demandMeta = m;
+    return deduped;
 }
 
 // Same date as the demand? Returns false only when item HAS a date that
