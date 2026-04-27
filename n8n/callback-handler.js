@@ -218,7 +218,7 @@ async function fetchDiscord(){
     if(!rows.length) return [];
     const header=rows[0].map(h=>(h||'').trim().toLowerCase());
     const idx=name=>header.indexOf(name);
-    const cI=idx('listing_id'),sH=idx('seller_handle'),sI=idx('seller_id'),aR=idx('artist'),dI=idx('event_date_iso'),dL=idx('event_label'),cT=idx('category'),qT=idx('quantity'),pU=idx('price_per_unit'),pT=idx('price_total'),bL=idx('block'),nT=idx('notes'),sT=idx('status');
+    const cI=idx('listing_id'),sH=idx('seller_handle'),sI=idx('seller_id'),aR=idx('artist'),dI=idx('event_date_iso'),dL=idx('event_label'),cT=idx('category'),qT=idx('quantity'),pU=idx('price_per_unit'),pT=idx('price_total'),bL=idx('block'),nT=idx('notes'),mI=idx('message_id'),pA=idx('posted_at'),sA=idx('scraped_at'),sT=idx('status');
     const out=[];
     for(let i=1;i<rows.length;i++){
         const cols=rows[i]; if(!cols||!cols.length) continue;
@@ -238,7 +238,7 @@ async function fetchDiscord(){
         const seller=(cols[sH]||'').trim();
         const block=(cols[bL]||'').trim()||null;
         const cleanName=[qty>1?'x'+qty:'',cat&&cat!=='NC'?cat:'',artist,cols[dL]||'',block?'('+block+')':''].filter(Boolean).join(' ').trim();
-        out.push({ listingId:cols[cI]||'', source:'discord', seller, sellerId:(cols[sI]||'').trim(), artist, cat, qty, dateMonth, dateDay, dateLabel:(cols[dL]||'').trim(), prixAchat:ppu, prixVente:0, priceTotal:total, block, notes:(cols[nT]||'').trim(), cleanName, status, available:!isUnavailable, stockStatus:'discord' });
+        out.push({ listingId:cols[cI]||'', source:'discord', seller, sellerId:(cols[sI]||'').trim(), artist, cat, qty, dateMonth, dateDay, dateLabel:(cols[dL]||'').trim(), prixAchat:ppu, prixVente:0, priceTotal:total, block, notes:(cols[nT]||'').trim(), cleanName, messageId:mI>=0?(cols[mI]||'').trim():'', postedAt:pA>=0?(cols[pA]||'').trim():'', scrapedAt:sA>=0?(cols[sA]||'').trim():'', status, available:!isUnavailable, stockStatus:'discord' });
     }
     return out;
 }
