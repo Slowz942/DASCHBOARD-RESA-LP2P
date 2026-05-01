@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         LP2P · Discord WTS scraper
 // @namespace    lp2p
-// @version      0.1.2
-// @description  Forwards new WTS posts in your community's #wts channel to your n8n webhook for sourcing.
+// @version      0.2.0
+// @description  Forwards new WTS posts in your community's #wts channel to your n8n webhook for sourcing. Includes auto-scroll, disconnect-recover, and a 5-min heartbeat for unattended operation.
 // @author       LP2P
 // @match        https://discord.com/channels/1182738991943008387/1201954119804264458*
 // @grant        GM_getValue
@@ -22,7 +22,9 @@
  *   1. Open Discord in Chrome and pin the WTS channel as a tab.
  *   2. Tampermonkey menu → "LP2P · Set webhook URL" → paste your n8n webhook
  *      (or https://webhook.site/<id> while testing).
- *   3. Reload the channel; the script auto-scans and forwards every WTS message
+ *   3. Tampermonkey menu → "LP2P · Set heartbeat URL" → paste the n8n
+ *      heartbeat webhook so the watchdog can detect silent failures.
+ *   4. Reload the channel; the script auto-scans and forwards every WTS message
  *      it sees (deduped by Discord message ID).
  *
  * What it does:
@@ -33,13 +35,21 @@
  *     in batches to your webhook.
  *   - Stores seen message IDs in Tampermonkey storage so reloading the channel
  *     doesn't re-send messages you've already forwarded.
+ *   - Auto-scrolls the channel to the bottom every 30s so Discord's virtualized
+ *     list keeps mounting new messages even if scroll position drifts.
+ *   - Detects Discord disconnect banners and reloads the page if the
+ *     condition persists ≥60s (max one reload per 10 minutes).
+ *   - Posts a heartbeat to the heartbeat URL every 5 minutes (plus one on
+ *     startup) so a downstream watchdog can alert if this scraper goes silent.
  *
  * Tampermonkey menu commands:
- *   - "LP2P · Set webhook URL"    set / change the webhook target
- *   - "LP2P · Show status"        webhook + seen-message stats
- *   - "LP2P · Re-send last visible"  forget seen-IDs and resend everything currently rendered
- *   - "LP2P · Clear seen IDs"     wipe the dedupe cache (use if testing)
- *   - "LP2P · Toggle WTS-only filter"  off = forward every message (debug)
+ *   - "LP2P · Set webhook URL"        set / change the WTS webhook target
+ *   - "LP2P · Set heartbeat URL"      set / change the heartbeat webhook target
+ *   - "LP2P · Show status"            webhook + heartbeat + state stats
+ *   - "LP2P · Re-send last visible"   forget seen-IDs and resend everything currently rendered
+ *   - "LP2P · Clear seen IDs"         wipe the dedupe cache (use if testing)
+ *   - "LP2P · Toggle WTS-only filter" off = forward every message (debug)
+ *   - "LP2P · Pause auto-scroll"      toggle auto-scroll on/off (debug)
  */
 
 (() => {
@@ -48,6 +58,17 @@
     const CHANNEL_ID = '1201954119804264458';
     const STORE = 'lp2p_wts_';
     const SEEN_CAP = 2000;
+    const VERSION = '0.2.0';
+    const HEARTBEAT_MS = 5 * 60 * 1000;          // POST heartbeat every 5 min
+    const FIRST_HEARTBEAT_DELAY_MS = 3000;       // also fire one ~3s after load
+    const AUTO_SCROLL_MS = 30 * 1000;            // scroll-to-bottom every 30s
+    const DISCONNECT_CHECK_MS = 30 * 1000;       // poll for disconnect banner every 30s
+    const DISCONNECT_THRESHOLD_MS = 60 * 1000;   // sustained ≥60s → reload
+    const RELOAD_THROTTLE_MS = 10 * 60 * 1000;   // ≤ 1 reload per 10 min
+    const DISCONNECT_SELECTORS = [
+        '[class*="connectionStatus"][class*="offline"]',
+        '[role="status"][aria-live]',
+    ];
 
     // ---- storage helpers -------------------------------------------------
     const get = (k, def) => GM_getValue(STORE + k, def);
@@ -69,14 +90,29 @@
         toast('Webhook saved');
     });
 
+    GM_registerMenuCommand('LP2P · Set heartbeat URL', () => {
+        const cur = get('heartbeat', '');
+        const v = prompt('n8n heartbeat webhook URL (POSTed every 5 min so the watchdog can alert on silence):', cur);
+        if (v === null) return;
+        set('heartbeat', (v || '').trim());
+        toast('Heartbeat URL saved');
+    });
+
     GM_registerMenuCommand('LP2P · Show status', () => {
         const wh = get('webhook', '');
+        const hb = get('heartbeat', '');
         const seen = getSeen();
         const filt = get('wtsOnly', true);
+        const autoScroll = !get('autoscroll_paused', false);
+        const lastReload = get('last_reload_ts', 0);
         alert(
-            'Webhook:    ' + (wh || '(not set)') +
-            '\nSeen msgs:  ' + seen.size +
-            '\nWTS filter: ' + (filt ? 'ON (only forwards WTS posts)' : 'OFF (forwards every message)')
+            'Version:     ' + VERSION +
+            '\nWebhook:     ' + (wh || '(not set)') +
+            '\nHeartbeat:   ' + (hb || '(not set)') +
+            '\nSeen msgs:   ' + seen.size +
+            '\nWTS filter:  ' + (filt ? 'ON (only forwards WTS posts)' : 'OFF (forwards every message)') +
+            '\nAuto-scroll: ' + (autoScroll ? 'ON (every 30s)' : 'PAUSED') +
+            '\nLast reload: ' + (lastReload ? new Date(lastReload).toISOString() : '(never)')
         );
     });
 
@@ -94,6 +130,12 @@
         const next = !get('wtsOnly', true);
         set('wtsOnly', next);
         toast('WTS-only filter: ' + (next ? 'ON' : 'OFF'));
+    });
+
+    GM_registerMenuCommand('LP2P · Pause auto-scroll', () => {
+        const next = !get('autoscroll_paused', false);
+        set('autoscroll_paused', next);
+        toast('Auto-scroll: ' + (next ? 'PAUSED' : 'ON'));
     });
 
     // ---- DOM extraction --------------------------------------------------
@@ -210,6 +252,109 @@
         toast._t = setTimeout(() => { toastEl.style.opacity = '0'; }, 2400);
     }
 
+    // ---- auto-scroll -----------------------------------------------------
+    let cachedScroller = null;
+    function findScroller() {
+        if (cachedScroller && document.contains(cachedScroller)) return cachedScroller;
+        cachedScroller = null;
+        const list = document.querySelector('[data-list-id="chat-messages"]');
+        if (!list) return null;
+        let node = list.parentElement;
+        while (node && node !== document.body) {
+            const cs = getComputedStyle(node);
+            const ovy = cs.overflowY;
+            if ((ovy === 'auto' || ovy === 'scroll') && node.scrollHeight > node.clientHeight) {
+                cachedScroller = node;
+                return node;
+            }
+            node = node.parentElement;
+        }
+        return null;
+    }
+
+    function autoScrollTick() {
+        if (get('autoscroll_paused', false)) return;
+        const sc = findScroller();
+        if (!sc) return;
+        sc.scrollTop = sc.scrollHeight;
+    }
+
+    // ---- disconnect detect + recover -------------------------------------
+    let disconnectFirstSeen = 0;
+    function isDisconnected() {
+        for (const sel of DISCONNECT_SELECTORS) {
+            const el = document.querySelector(sel);
+            if (!el) continue;
+            // The connectionStatus class selector is already specific.
+            if (sel.includes('connectionStatus')) return true;
+            // The aria-live[role=status] selector matches many transient regions
+            // (typing, new-message indicator, etc.). Filter by visible text.
+            const txt = (el.textContent || '').trim();
+            if (/reconnect|connecting|you are offline|no (internet|connection)|trying to (reconnect|connect)/i.test(txt)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function checkDisconnect() {
+        if (!isDisconnected()) {
+            disconnectFirstSeen = 0;
+            return;
+        }
+        const now = Date.now();
+        if (!disconnectFirstSeen) {
+            disconnectFirstSeen = now;
+            console.warn('[LP2P] Discord disconnect indicator detected; monitoring...');
+            return;
+        }
+        if (now - disconnectFirstSeen < DISCONNECT_THRESHOLD_MS) return;
+        const lastReload = get('last_reload_ts', 0);
+        if (now - lastReload < RELOAD_THROTTLE_MS) {
+            console.warn('[LP2P] Disconnect persists but reload throttled (last reload ' +
+                new Date(lastReload).toISOString() + ').');
+            return;
+        }
+        console.warn('[LP2P] Disconnect persisted ≥' + (DISCONNECT_THRESHOLD_MS / 1000) + 's — reloading.');
+        set('pending_recovered_from', 'disconnect');
+        set('last_reload_ts', now);
+        location.reload();
+    }
+
+    // ---- heartbeat -------------------------------------------------------
+    function heartbeat() {
+        const url = get('heartbeat', '');
+        if (!url) return;
+        const messagesVisible = document.querySelectorAll(
+            '[id^="chat-messages-' + CHANNEL_ID + '-"]'
+        ).length;
+        const recoveredFrom = get('pending_recovered_from', '');
+        const body = {
+            source: 'discord-scraper',
+            ts: new Date().toISOString(),
+            channel_id: CHANNEL_ID,
+            version: VERSION,
+            messages_visible: messagesVisible,
+            seen_count: getSeen().size,
+            auto_scroll: !get('autoscroll_paused', false),
+        };
+        if (recoveredFrom) body.recovered_from = recoveredFrom;
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url,
+            headers: { 'Content-Type': 'application/json' },
+            data: JSON.stringify(body),
+            onload: r => {
+                if (r.status >= 200 && r.status < 300) {
+                    if (recoveredFrom) set('pending_recovered_from', '');
+                } else {
+                    console.warn('[LP2P] heartbeat non-2xx', r.status, r.responseText);
+                }
+            },
+            onerror: e => console.warn('[LP2P] heartbeat error', e),
+        });
+    }
+
     // ---- observer + initial scan ----------------------------------------
     let scanTimer = null;
     const observer = new MutationObserver(() => {
@@ -226,10 +371,15 @@
             return;
         }
         observer.observe(messagesContainer, { childList: true, subtree: true });
-        console.log('[LP2P] Discord WTS scraper active on channel', CHANNEL_ID);
-        toast('WTS scraper active');
+        console.log('[LP2P] Discord WTS scraper active on channel', CHANNEL_ID, 'v' + VERSION);
+        toast('WTS scraper active v' + VERSION);
         // First scan after a short settle delay
         setTimeout(() => scanAndSend(false), 2500);
+        // Background loops
+        setInterval(autoScrollTick, AUTO_SCROLL_MS);
+        setInterval(checkDisconnect, DISCONNECT_CHECK_MS);
+        setInterval(heartbeat, HEARTBEAT_MS);
+        setTimeout(heartbeat, FIRST_HEARTBEAT_DELAY_MS);
     }
 
     startObserver();
