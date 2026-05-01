@@ -67,12 +67,8 @@ This is the receiver. It updates the row whenever the userscript pings.
    - **Credential** = your existing Google credential.
    - **Document** = CRM workbook (`1Id3KCN3_EVGvr04LJiAxks2yGTB1wOgNUfuD_M5pnK8`).
    - **Sheet** = `Heartbeats`.
-   - **Mapping Column Mode** = `Map Each Column Manually`.
+   - **Mapping Column Mode** = `Auto-Map Input Data`. (Map Each Column Manually also works but is finicky — easy to forget a column. Auto-map picks up `source`, `last_seen`, `version`, `notes` from the Code node's output automatically because those keys match the sheet headers.)
    - **Column to match on** = `source`.
-   - **Values to send** (use `{{ $json.fieldname }}` expressions):
-     - `last_seen`  → `{{ $json.last_seen }}`
-     - `version`    → `{{ $json.version }}`
-     - `notes`      → `{{ $json.notes }}`
    - **Settings → Always Output Data → ON.** (Same gotcha as the IG status updater workflow — without this the Respond node fires before the row update lands, and with empty data downstream nodes silently drop.)
 5. **Respond to Webhook** node, named **`OK`**.
    - **Respond With** = `Text` (or empty JSON), **Response Code** = `200`.
@@ -95,29 +91,35 @@ This is the alerter. Runs on a schedule independent of the userscript.
      ```
      https://raw.githubusercontent.com/Slowz942/DASCHBOARD-RESA-LP2P/main/n8n/check-stale.js
      ```
-5. **IF** node, named **`Has Action`**.
-   - **Condition**: `{{ $json.action }}` **not equal** `noop`
-   - **Settings → Convert types → ON.** (CLAUDE.md gotcha — the comparison silently fails without this.)
-6. **Switch** node on the `true` branch of the IF, named **`Route Action`**.
-   - Mode = `Expression`.
-   - Output 0 condition: `{{ $json.action }}` equals `alert_stale`
-   - Output 1 condition: `{{ $json.action }}` equals `alert_recovered`
-7. **Telegram sendMessage** node on each Switch output:
-   - Output 0 → name **`Alert Stale`**:
-     - **Chat ID** = `5135913166` (hardcoded — operator's chat)
-     - **Text** = `{{ $json.text }}`
-   - Output 1 → name **`Alert Recovered`**:
-     - **Chat ID** = `5135913166`
-     - **Text** = `{{ $json.text }}`
-   - Use the same Telegram credential as the existing flows.
-8. **Google Sheets** node, **Update Row** on each Telegram node's output:
-   - Same workbook, sheet = `Heartbeats`, match on `source`.
-   - Values:
-     - `alert_state`    → `{{ $json.alert_state }}`
-     - `last_alert_at`  → `{{ $json.last_alert_at }}`
+5. **Switch** node directly after Check Stale, named **`Route Action`**.
+   - Mode = `Rules`.
+   - Output 0: `{{ $json.action }}` equals `alert_stale`
+   - Output 1: `{{ $json.action }}` equals `alert_recovered`
+   - Fallback Output: `None` (default). This is what makes `noop` items disappear silently — no IF filter needed beforehand.
+   - (Earlier brief versions had an `IF` node before the Switch to filter `noop`. It's redundant — Switch's Fallback=None already drops unmatched items. Skipping the IF removed a class of misconfiguration bugs we hit during initial setup.)
+6. **Telegram sendMessage** + **Google Sheets Update Row** on EACH Switch output, **wired in PARALLEL** (both nodes connected directly to the Switch output, NOT chained Telegram → Sheets):
+
+   ```
+   Switch output 0 ─┬─→ Alert Stale     (Telegram)
+                    └─→ Mark STALE      (Sheets Update Row)
+
+   Switch output 1 ─┬─→ Alert Recovered (Telegram)
+                    └─→ Mark OK         (Sheets Update Row)
+   ```
+
+   **Why parallel, not series:** the Telegram node's response replaces `$json` with the Telegram API result (`{ ok, result: { message_id, ... } }`) — `$json.alert_state` and `$json.last_alert_at` are gone. Wiring Sheets-Update downstream of Telegram silently fails ("result undefined" for those fields). Branching in parallel from the Switch output gives both nodes the original Code-node payload as `$json`.
+
+   **Telegram nodes** (`Alert Stale` and `Alert Recovered`):
+   - **Chat ID** = `5135913166` (hardcoded — operator's chat)
+   - **Text** = `{{ $json.text }}`
+   - Same Telegram credential as the existing flows.
+
+   **Sheets nodes** (`Mark STALE` and `Mark OK`):
+   - Same workbook, sheet = `Heartbeats`.
+   - Operation = `Update Row`, match on `source`.
+   - Mapping Column Mode = `Auto-Map Input Data`. (The Code node outputs `source`, `alert_state`, `last_alert_at` which map directly to sheet columns. If using Map Each Column Manually instead, all three rows must be present.)
    - **Settings → Always Output Data → ON.**
-   - Name them `Mark STALE` and `Mark OK` for clarity.
-9. **Activate** the workflow.
+7. **Activate** the workflow.
 
 ---
 
