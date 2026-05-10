@@ -389,12 +389,13 @@ If multiple plausible interpretations, pick the one most recently expressed by t
                 'anthropic-version': '2023-06-01',
                 'content-type': 'application/json',
             },
-            body: JSON.stringify({
+            body: {
                 model: MODEL,
                 max_tokens: 400,
                 system,
                 messages: [{ role: 'user', content: userMsg }],
-            }),
+            },
+            json: true,
         });
     } catch (err) {
         const body = err?.response?.body || err?.response?.data || err?.cause?.response?.body || err?.message || String(err);
