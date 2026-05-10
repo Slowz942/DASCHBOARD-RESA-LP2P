@@ -398,8 +398,25 @@ If multiple plausible interpretations, pick the one most recently expressed by t
             json: true,
         });
     } catch (err) {
-        const body = err?.response?.body || err?.response?.data || err?.cause?.response?.body || err?.message || String(err);
-        throw new Error('Anthropic call failed: ' + (typeof body === 'string' ? body : JSON.stringify(body)));
+        // Surface every plausible location an HTTP client might park the response body.
+        const dig = (e) => {
+            if (!e) return null;
+            const cands = [
+                e?.response?.body, e?.response?.data, e?.response?.text,
+                e?.cause?.response?.body, e?.cause?.response?.data,
+                e?.body, e?.data, e?.responseBody,
+                e?.context?.body, e?.context?.data,
+            ];
+            for (const c of cands) if (c !== undefined && c !== null && c !== '') return c;
+            return null;
+        };
+        const body = dig(err);
+        const detail =
+            'model=' + MODEL +
+            ' | status=' + (err?.statusCode || err?.response?.statusCode || err?.cause?.statusCode || 'n/a') +
+            ' | message=' + (err?.message || String(err)).substring(0, 200) +
+            ' | body=' + (body ? (typeof body === 'string' ? body : JSON.stringify(body)).substring(0, 800) : '(no body)');
+        throw new Error('Anthropic call failed: ' + detail);
     }
     const llmMs = Date.now() - t0;
 
