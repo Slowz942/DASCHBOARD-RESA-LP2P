@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         LP2P · Instagram DM Assist
 // @namespace    https://github.com/Slowz942/DASCHBOARD-RESA-LP2P
-// @version      0.1.0
+// @version      0.1.1
 // @description  Reads the open IG DM thread, parses the client's intent via n8n, surfaces top-3 inventory + Sourcing Discord matches with copyable proposal text. Toggle on/off from the floating widget.
 // @author       LP2P
 // @match        https://www.instagram.com/direct/*
@@ -263,41 +263,85 @@
     }
 
     function findMessageList(){
-        // Walk down from main looking for a scroller with many [role="row"] descendants
-        const candidates = document.querySelectorAll('div[role="grid"], [aria-label*="Messages" i], [aria-label*="messages" i], main');
-        for(const c of candidates){
-            if(c.querySelectorAll('[role="row"], [role="listitem"]').length >= 2) return c;
+        // IG (2026 layout) wraps the convo in an element with aria-label containing
+        // "Messages" or "messagerie" (FR) — the input/composer also has aria-label
+        // with "message" so we discriminate by descendant count.
+        const labeled = document.querySelectorAll('[aria-label*="essage" i], [aria-label*="essagerie" i]');
+        let best = null, bestCount = 0;
+        for(const el of labeled){
+            const count = el.querySelectorAll('div').length;
+            if(count > bestCount){ best = el; bestCount = count; }
         }
+        if(best && bestCount > 10) return best;
         return document.querySelector('main') || document.body;
     }
 
+    // Used for MutationObserver target. Falls back to main if needed.
+    function findObserveTarget(){
+        return findMessageList();
+    }
+
     function extractMessages(){
-        const list = findMessageList();
-        if(!list){ warn('no message list'); return []; }
-        const rows = Array.from(list.querySelectorAll('[role="row"], [role="listitem"]'));
-        if(!rows.length){ warn('no rows'); return []; }
+        const container = findMessageList();
+        if(!container){ warn('no container'); return []; }
 
-        const parentRect = list.getBoundingClientRect();
-        const centerX = parentRect.left + parentRect.width / 2;
+        // Walk all div/span/p inside container; collect "text-bearing leaves" —
+        // elements whose direct text (or innerText if no children) is the bubble text.
+        // Robust to IG class-name changes and React rerenders.
+        const all = container.querySelectorAll('div, span, p');
+        const seenText = new Set();
+        const candidates = [];
 
-        const out = [];
-        for(const row of rows){
-            const text = (row.innerText || '').trim();
+        for(const el of all){
+            // Direct text node content (preferred over innerText to avoid wrappers)
+            let text = '';
+            for(const n of el.childNodes){
+                if(n.nodeType === 3 /* TEXT_NODE */){
+                    const t = (n.textContent || '').trim();
+                    if(t) text += (text ? ' ' : '') + t;
+                }
+            }
+            if(!text && el.children.length === 0){
+                text = (el.innerText || '').trim();
+            }
             if(!text) continue;
-            // Strip any embedded date/time labels Discord-style — IG occasionally
-            // injects timestamps in row.innerText. Keep alphanumerics + punctuation.
-            // Heuristic: long run of bullets or "Sent" markers => skip.
-            if(/^(seen|sent|delivered|reactions?:)$/i.test(text)) continue;
-            if(text.length > 1000) continue; // probably embed
+            if(text.length < 2 || text.length > 2000) continue;
 
-            const r = row.getBoundingClientRect();
-            const rowCenter = r.left + r.width / 2;
-            const from = (rowCenter > centerX) ? 'me' : 'client';
+            // Filter out IG UI labels
+            if(/^(seen|sent|delivered|active now|reply|messages?|envoyer|vu|active|en ligne|partagé|shared|reactions?:?)$/i.test(text)) continue;
+            // Filter out lone timestamps
+            if(/^\d{1,2}:\d{2}$/.test(text)) continue;
+            if(/^(today|yesterday|aujourd'hui|hier)\s*\d*:?\d*\s*(am|pm)?$/i.test(text)) continue;
 
-            out.push({ from, text });
+            const rect = el.getBoundingClientRect();
+            if(rect.width < 5 || rect.height < 5) continue;
+
+            // Avoid duplicate text from nested wrappers (parent + child both report same text).
+            // Keep the deeper one (smaller area).
+            const key = text + '|' + Math.round(rect.top);
+            if(seenText.has(key)) continue;
+            seenText.add(key);
+
+            candidates.push({ text, rect });
         }
 
-        // De-duplicate consecutive identical entries (IG sometimes nests)
+        if(!candidates.length){ warn('no candidates extracted from container', container); return []; }
+
+        // Sort by vertical position (oldest at top)
+        candidates.sort((a, b) => a.rect.top - b.rect.top);
+
+        // Alignment: left of container center → client; right → operator
+        const cRect = container.getBoundingClientRect();
+        const centerX = cRect.left + cRect.width / 2;
+
+        const out = [];
+        for(const c of candidates){
+            const elCenter = c.rect.left + c.rect.width / 2;
+            const from = elCenter > centerX ? 'me' : 'client';
+            out.push({ from, text: c.text });
+        }
+
+        // Dedupe consecutive identical
         const dedup = [];
         for(const m of out){
             const last = dedup[dedup.length - 1];
@@ -305,6 +349,7 @@
             dedup.push(m);
         }
 
+        log('extracted', dedup.length, 'messages');
         return dedup.slice(-HISTORY_TURNS);
     }
 
