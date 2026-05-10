@@ -41,7 +41,7 @@
 // >>> EDIT THESE LINES <<<
 const ANTHROPIC_API_KEY = 'PASTE_YOUR_ANTHROPIC_API_KEY_HERE';        // same key as parse-via-claude-full
 const APPS_SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbwKCiudNgJU4RtPk-tCv5A33IX3TVtIEJAU_LwbmdhpXHPbWRqYoLbYDUWzkR12zkQ8Hw/exec';
-const MODEL             = 'claude-3-5-haiku-20241022';
+const MODEL             = 'claude-haiku-4-5-20251001';
 // <<< END EDIT >>>
 
 const INVENTORY_SHEET_ID = '1jSQNoni7qW6ShnRw3hi_g_fF90qn5YZ3koRaL1gYTLE';
